@@ -1,0 +1,39 @@
+/*
+ * 責務: 会話ウィンドウのレスポンシブ補正を担当する。
+ * 更新ルール: dialogue.css の後続補正として読み込まれる前提を崩さない。
+ */
+
+  .dialogue-window {
+    width: min(92%, 700px);
+    min-height: min(60%, 250px);
+    max-height: min(72%, 340px);
+    grid-template-columns: 88px 1fr;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .dialogue-portrait-frame {
+    min-height: 104px;
+  }
+
+  .dialogue-portrait {
+    width: 88px;
+    height: 108px;
+  }
+
+  .dialogue-speaker {
+    min-height: 28px;
+    margin-bottom: 8px;
+    padding: 4px 12px;
+    font-size: 16px;
+  }
+
+  .dialogue-text {
+    font-size: 20px;
+    line-height: 1.5;
+  }
+
+  .dialogue-hint {
+    margin-top: 6px;
+    font-size: 12px;
+  }

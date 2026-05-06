@@ -1,0 +1,25 @@
+/**
+ * 責務: プレイヤー調整値を管理する。
+ * 更新ルール: 設定値だけを置き、実行時ロジックやDOM操作を追加しない。
+ */
+export const PLAYER_CONFIG = {
+  WIDTH: 28,
+  HEIGHT: 40,
+  BODY_BOUNDS_W: 24,
+  BODY_BOUNDS_H: 48,
+  DAMAGE_BOUNDS_W: 12,
+  DAMAGE_BOUNDS_H: 32,
+  DRAW_W: 58,
+  DRAW_H: 78,
+  MOVE_SPEED: 142,
+  AIR_SPEED: 130,
+  ACCEL_GROUND: 840,
+  ACCEL_AIR: 580,
+  FRICTION: 820,
+  GRAVITY: 820,
+  JUMP_SPEED: -288,
+  MAX_FALL_SPEED: 450,
+  COYOTE_TIME: 0.1,
+  JUMP_BUFFER: 0.12,
+  HIT_INVINCIBLE: 1.1,
+};

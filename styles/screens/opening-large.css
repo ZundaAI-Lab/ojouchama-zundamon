@@ -1,0 +1,66 @@
+/*
+ * 責務: オープニング画面本文を会話本文基準で大きく表示する補正を担当する。
+ * 更新ルール: OpeningViewのクラスだけを対象にし、タイトルやガーデンの表示規則を混ぜない。
+ */
+.opening-card {
+  width: min(92%, 1040px);
+  max-height: min(94%, 760px);
+  padding: clamp(24px, 3vh, 42px) clamp(28px, 4vw, 54px);
+  gap: 16px;
+}
+
+.opening-label {
+  font-size: 20px;
+  padding: 7px 16px;
+}
+
+.opening-title {
+  font-size: clamp(40px, 4vw, 58px);
+  line-height: 1.08;
+}
+
+.opening-text {
+  min-height: min(44vh, 340px);
+  max-height: min(54vh, 440px);
+  overflow: auto;
+  padding: clamp(24px, 3vh, 38px) clamp(28px, 4vw, 48px);
+  font-size: 40px;
+  line-height: 1.34;
+  border-radius: 32px;
+}
+
+.opening-text strong {
+  min-height: 42px;
+  margin-bottom: 16px;
+  padding: 7px 18px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.opening-progress {
+  font-size: 22px;
+}
+
+@media (max-height: 620px), (max-width: 860px) {
+  .opening-card {
+    width: min(96%, 760px);
+    max-height: min(96%, 520px);
+    padding: 18px 20px;
+  }
+
+  .opening-title {
+    font-size: 34px;
+  }
+
+  .opening-text {
+    min-height: min(44vh, 250px);
+    max-height: min(58vh, 320px);
+    padding: 20px 22px;
+    font-size: 40px;
+    line-height: 1.22;
+  }
+
+  .opening-text strong {
+    font-size: 25px;
+  }
+}

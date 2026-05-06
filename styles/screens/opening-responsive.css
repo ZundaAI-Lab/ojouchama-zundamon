@@ -1,0 +1,33 @@
+/*
+ * 責務: オープニング画面の大型表示・レスポンシブ補正を担当する。
+ * 更新ルール: opening.css の後続補正として読み込まれる前提を崩さない。
+ */
+.opening-card {
+  width: min(86%, 800px);
+  max-height: min(90%, 620px);
+}
+
+.opening-label {
+  font-size: 14px;
+}
+
+.opening-title {
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+.opening-text {
+  min-height: min(38vh, 240px);
+  font-size: 20px;
+  line-height: 1.68;
+}
+
+.opening-text strong {
+  min-height: 30px;
+  font-size: 17px;
+}
+
+.opening-progress {
+  font-size: 14px;
+}
+

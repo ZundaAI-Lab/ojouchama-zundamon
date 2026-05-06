@@ -1,0 +1,222 @@
+/*
+ * 責務: ガーデン・ショップ・ステージ選択の大型表示とレスポンシブ補正を担当する。
+ * 更新ルール: garden.css の後続補正として読み込まれる前提を崩さない。
+ */
+.garden-header .menu-title,
+.stage-card .garden-header .menu-title {
+  font-size: clamp(31px, 3.3vw, 42px);
+  line-height: 1.08;
+}
+
+.garden-header .menu-subtitle,
+.stage-card .garden-header .menu-subtitle {
+  font-size: clamp(16px, 1.35vw, 20px);
+  line-height: 1.42;
+}
+
+.garden-coin,
+.stage-card .garden-coin {
+  font-size: clamp(18px, 1.45vw, 22px);
+}
+
+.section-title-row h2,
+.stage-card .stage-section h2 {
+  font-size: clamp(24px, 2vw, 28px);
+}
+
+.section-title-row span {
+  font-size: clamp(15px, 1.15vw, 18px);
+}
+
+.stage-select,
+.stage-card .stage-select,
+.upgrade-select {
+  min-height: clamp(74px, 8.6vh, 92px);
+  padding: clamp(12px, 1.45vh, 16px) clamp(16px, 1.7vw, 20px);
+}
+
+.stage-select strong,
+.stage-card .stage-select strong,
+.upgrade-select strong {
+  font-size: clamp(20px, 1.75vw, 24px);
+  line-height: 1.18;
+}
+
+.stage-select span,
+.stage-card .stage-select span,
+.upgrade-select span {
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.4;
+}
+
+.stage-select em,
+.stage-card .stage-select em,
+.upgrade-select em {
+  font-size: clamp(15px, 1.1vw, 17px);
+  line-height: 1.15;
+}
+
+.garden-actions .primary-btn,
+.garden-actions .secondary-btn,
+.stage-card .garden-actions .primary-btn,
+.stage-card .garden-actions .secondary-btn {
+  min-width: clamp(150px, 15vw, 190px);
+  font-size: clamp(17px, 1.25vw, 19px);
+}
+
+.dialogue-text {
+  font-size: 20px;
+  line-height: 1.68;
+}
+
+.dialogue-window {
+  width: min(86%, 800px);
+  min-height: min(54%, 300px);
+  max-height: min(68%, 380px);
+  grid-template-columns: minmax(110px, 22%) 1fr;
+}
+
+.dialogue-speaker {
+  min-height: 30px;
+  font-size: 17px;
+}
+
+.dialogue-hint {
+  font-size: 13px;
+}
+
+@media (max-height: 620px), (max-width: 860px) {
+  .menu-card {
+    width: min(94%, 560px);
+    padding: 20px 22px;
+  }
+
+  .menu-title {
+    font-size: 30px;
+  }
+
+  .menu-subtitle {
+    font-size: 16px;
+  }
+
+
+  .menu-actions .primary-btn,
+  .menu-actions .secondary-btn {
+    padding: 11px 18px;
+    font-size: 16px;
+  }
+
+  .result-row {
+    padding: 9px 12px;
+    font-size: 16px;
+  }
+
+  .result-row strong {
+    font-size: 18px;
+  }
+
+  .opening-card {
+    width: min(92%, 700px);
+    max-height: min(94%, 430px);
+    padding: 16px 18px;
+  }
+
+  .opening-title {
+    font-size: 26px;
+  }
+
+  .opening-text {
+    min-height: min(40vh, 190px);
+    padding: 16px 18px;
+    font-size: 20px;
+    line-height: 1.55;
+  }
+
+  .opening-text strong {
+    min-height: 28px;
+    margin-bottom: 8px;
+    padding: 4px 12px;
+    font-size: 16px;
+  }
+
+  .opening-progress {
+    font-size: 13px;
+  }
+
+  .garden-card,
+  .garden-card.stage-card,
+  .garden-card.shop-card {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .garden-header .menu-title,
+  .stage-card .garden-header .menu-title {
+    font-size: 26px;
+  }
+
+  .garden-header .menu-subtitle,
+  .stage-card .garden-header .menu-subtitle {
+    font-size: 14px;
+  }
+
+  .garden-coin,
+  .stage-card .garden-coin {
+    padding: 7px 12px;
+    font-size: 16px;
+  }
+
+  .section-title-row h2,
+  .stage-card .stage-section h2 {
+    font-size: 21px;
+  }
+
+  .stage-list,
+  .stage-card .stage-list,
+  .upgrade-list {
+    gap: 8px;
+  }
+
+  .stage-select,
+  .stage-card .stage-select,
+  .upgrade-select {
+    min-height: 64px;
+    padding: 9px 11px;
+    gap: 10px;
+  }
+
+  .stage-select img,
+  .stage-card .stage-select img {
+    width: 46px;
+    height: 50px;
+  }
+
+  .stage-select strong,
+  .stage-card .stage-select strong,
+  .upgrade-select strong {
+    font-size: 17px;
+  }
+
+  .stage-select span,
+  .stage-card .stage-select span,
+  .upgrade-select span {
+    font-size: 14px;
+    line-height: 1.32;
+  }
+
+  .stage-select em,
+  .stage-card .stage-select em,
+  .upgrade-select em {
+    padding: 3px 7px;
+    font-size: 13px;
+  }
+
+  .garden-actions .primary-btn,
+  .garden-actions .secondary-btn,
+  .stage-card .garden-actions .primary-btn,
+  .stage-card .garden-actions .secondary-btn {
+    min-width: 124px;
+    padding: 9px 14px;
+    font-size: 15px;
+  }
+}

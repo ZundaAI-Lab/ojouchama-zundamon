@@ -1,0 +1,223 @@
+/*
+ * 責務: デバッグ画面と負荷状況モニタの見た目を担当する。
+ * 更新ルール: デバッグ機能の有効/無効判定はJS側に置き、CSSは表示調整だけに限定する。
+ */
+.debug-card {
+  width: min(92%, 760px);
+  max-height: 88%;
+  overflow: auto;
+  padding: 20px;
+}
+
+.debug-label {
+  color: #8d5b91;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+
+.debug-title {
+  margin-top: 4px;
+}
+
+.debug-subtitle {
+  margin-bottom: 14px;
+}
+
+.debug-block {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 248, 252, 0.78);
+  border: 1px solid rgba(211, 160, 198, 0.42);
+}
+
+.debug-block-heading {
+  margin-bottom: 8px;
+  color: #6d5274;
+  font-weight: 900;
+}
+
+.debug-toggle-row {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  color: #5b4961;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.debug-toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #75c77e;
+}
+
+.debug-flag-note {
+  margin: 0 0 8px;
+  color: #6d5274;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.debug-progress-row {
+  border-radius: 10px;
+}
+
+.debug-progress-row:hover {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.debug-flag-state {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #7a5e82;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debug-boss-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.debug-boss-btn {
+  min-width: 0;
+  padding-inline: 12px;
+}
+
+.debug-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.debug-performance-monitor {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  min-width: 150px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(32, 24, 42, 0.76);
+  color: #f6fff6;
+  font: 700 11px/1.45 "Trebuchet MS", monospace;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+  pointer-events: none;
+}
+
+@media (max-width: 760px), (max-height: 520px) {
+  .debug-card {
+    width: 94%;
+    padding: 14px;
+  }
+
+  .debug-boss-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.debug-test-block {
+  text-align: left;
+}
+
+.debug-test-note {
+  margin: 0 0 10px;
+  color: #6d5274;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.debug-test-run-btn {
+  margin-bottom: 10px;
+}
+
+.debug-test-run-btn:disabled {
+  filter: grayscale(0.4);
+  opacity: 0.68;
+  cursor: wait;
+}
+
+.debug-test-result {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(174, 137, 184, 0.36);
+  color: #5b4961;
+  font: 800 12px/1.55 "Trebuchet MS", "Hiragino Sans", sans-serif;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.debug-test-result.is-running {
+  background: rgba(246, 240, 255, 0.86);
+}
+
+.debug-test-result.is-passed {
+  background: rgba(237, 255, 239, 0.9);
+  border-color: rgba(106, 184, 111, 0.5);
+}
+
+.debug-test-result.is-failed {
+  background: rgba(255, 239, 244, 0.92);
+  border-color: rgba(220, 118, 150, 0.52);
+}
+
+.debug-test-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #4f3e58;
+  font-size: 13px;
+}
+
+.debug-test-duration {
+  color: #7b6a82;
+  font-size: 11px;
+}
+
+.debug-test-all-clear {
+  margin: 6px 0 0;
+  color: #4b7c52;
+}
+
+.debug-test-failures {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.debug-test-failures li + li {
+  margin-top: 8px;
+}
+
+.debug-test-failures p {
+  margin: 4px 0;
+  font-weight: 700;
+}
+
+.debug-test-failures dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 8px;
+  margin: 6px 0 0;
+}
+
+.debug-test-failures dt {
+  color: #8d5b91;
+}
+
+.debug-test-failures dd {
+  margin: 0;
+  font-family: "Trebuchet MS", monospace;
+}

@@ -1,0 +1,30 @@
+/*
+ * 責務: 全CSSファイルを現行UIの表示順に沿って読み込むスタイル入口を提供する。
+ * 更新ルール: 分割CSSの上書き順を変える場合は画面表示差分を確認してから更新する。
+ */
+@import './base.css';
+@import './components/scrollbar.css';
+@import './layout.css';
+@import './hud.css';
+@import './components/menu-common.css';
+@import './screens/opening.css';
+@import './screens/garden.css';
+@import './screens/options.css';
+@import './components/dialogue.css';
+@import './components/tutorial-dialog.css';
+@import './components/confirm-dialog.css';
+@import './components/menu-scale.css';
+@import './screens/result.css';
+@import './screens/opening-responsive.css';
+@import './screens/garden-responsive.css';
+@import './components/dialogue-responsive.css';
+@import './components/menu-card-large.css';
+@import './screens/result-large.css';
+@import './screens/opening-large.css';
+@import './screens/garden-large.css';
+@import './components/dialogue-large.css';
+@import './screens/title.css';
+@import './screens/options-responsive.css';
+@import './components/menu-nav.css';
+@import './screens/title-final.css';
+@import './screens/debug.css';

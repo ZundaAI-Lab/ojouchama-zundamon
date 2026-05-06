@@ -1,0 +1,67 @@
+/**
+ * 責務: なのちゃん協力システムの調整値と状態名を定義する。
+ * 更新ルール: 実行時状態・入力解釈・描画処理は置かず、数値変更時はNanoCompanion/NanoController/NanoRendererの影響を確認する。頭乗りアセットは空白込みの同一キャンバス前提で、描画側で勝手にトリミングしない。
+ */
+export const NANO_STATES = {
+  HEAD: 'head',
+  FLY: 'fly',
+  WAIT: 'wait',
+  RETURN: 'return',
+};
+
+export const NANO_DRAW_SIZE = 36;
+
+export const NANO_CONFIG = {
+  BODY_W: 18,
+  BODY_H: 18,
+  DRAW_W: NANO_DRAW_SIZE,
+  DRAW_H: NANO_DRAW_SIZE,
+  MOUNT_DRAW_W: NANO_DRAW_SIZE,
+  MOUNT_DRAW_H: NANO_DRAW_SIZE,
+  MOUNT_OFFSET_X: 0,
+  MOUNT_OFFSET_Y: -12,
+  MOUNT_ACTION_OFFSET_Y: 6,
+  MOUNT_WALK_DOWN_OFFSET_Y: 0,
+  MOUNT_WALK_UP_OFFSET_Y: 0,
+  MOUNT_DAMAGE_BOUNCE_Y: 7,
+  MOUNT_DAMAGE_BOUNCE_TIME: 0.28,
+  HEAD_OFFSET_X: 0,
+  HEAD_OFFSET_Y: -36,
+  FLY_SPEED: 250,
+  FLY_MAX_DISTANCE: 220,
+  RETURN_SPEED: 240,
+  SCREEN_RETURN_MARGIN: 24,
+  SCREEN_TOP_VISUAL_PADDING: 3,
+  FACE_PLAYER_DEADZONE: 2,
+  GLIDE_MAX_FALL_SPEED: 78,
+  GLIDE_SPARK_INTERVAL: 0.14,
+  SWAP_COOLDOWN: 0.45,
+  SWAP_FX_TIME: 0.32,
+  SWAP_FAIL_FX_TIME: 0.24,
+  AUTO_SHOT_RANGE: 205,
+  AUTO_SHOT_DAMAGE: 1,
+  AUTO_SHOT_SPEED: 220,
+  AUTO_SHOT_LIFE: 0.92,
+  AUTO_SHOT_COOLDOWN: 2.65,
+  AUTO_SHOT_INITIAL_DELAY: 0.75,
+  AUTO_SHOT_W: 11,
+  AUTO_SHOT_H: 8,
+  AUTO_SHOT_COLOR: '#55ff74',
+  SWAP_SAFE_OFFSETS: [
+    { x: 0, y: 0 },
+    { x: 0, y: -4 },
+    { x: 0, y: -8 },
+    { x: 0, y: 4 },
+    { x: 0, y: 8 },
+    { x: 0, y: -16 },
+    { x: 0, y: 16 },
+    { x: 0, y: -24 },
+    { x: 0, y: 24 },
+    { x: -4, y: 0 },
+    { x: 4, y: 0 },
+    { x: -4, y: -8 },
+    { x: 4, y: -8 },
+    { x: -4, y: 8 },
+    { x: 4, y: 8 },
+  ],
+};

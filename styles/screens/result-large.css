@@ -1,0 +1,18 @@
+/*
+ * 責務: リザルト画面の大型表示補正を担当する。
+ * 更新ルール: ResultViewの行構造に依存するサイズ調整だけを置き、他画面のカード補正を混ぜない。
+ */
+.result-grid {
+  gap: 16px;
+}
+
+.result-row {
+  padding: 16px 20px;
+  font-size: clamp(24px, 2vw, 31px);
+  line-height: 1.2;
+  border-radius: 18px;
+}
+
+.result-row strong {
+  font-size: clamp(28px, 2.4vw, 36px);
+}

@@ -1,0 +1,284 @@
+/*
+ * 責務: ゲーム枠、canvas重ね合わせ、ルートレイアウト、タッチ領域の土台を担当する。
+ * 更新ルール: HUDや個別メニューの見た目は専用CSSへ分ける。
+ */
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+#game-shell {
+  position: relative;
+  width: min(100vw - 24px, calc((100vh - 24px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 16px 50px rgba(120, 71, 102, 0.35), 0 0 0 4px rgba(255,255,255,0.6) inset;
+  background: #fff5fa;
+}
+#game-canvas,
+#fx-root,
+#hud-root,
+#ui-root,
+#debug-root {
+  position: absolute;
+  inset: 0;
+}
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+  display: block;
+}
+#fx-root,
+#hud-root,
+#ui-root,
+#debug-root {
+  pointer-events: none;
+}
+.panel {
+  background: rgba(255, 255, 255, 0.88);
+  border: 2px solid rgba(177, 229, 177, 0.95);
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(70, 110, 70, 0.14);
+  backdrop-filter: blur(6px);
+}
+.primary-btn,
+.secondary-btn {
+  pointer-events: auto;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.primary-btn:hover,
+.secondary-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+.primary-btn {
+  background: linear-gradient(180deg, #8fe08f, #56b85f);
+  color: #143214;
+  box-shadow: 0 6px 16px rgba(86, 184, 95, 0.35);
+}
+.secondary-btn {
+  background: linear-gradient(180deg, #ffe9f1, #ffd5e5);
+  color: #7b4863;
+  box-shadow: 0 6px 16px rgba(223, 142, 176, 0.28);
+}
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.touch-left,
+.touch-right {
+  position: absolute;
+  bottom: 12px;
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.touch-left {
+  left: 12px;
+}
+
+.touch-right {
+  right: 12px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.touch-direction-pad,
+.touch-btn {
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.68);
+  color: #356335;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 18px rgba(40, 80, 40, 0.12);
+  user-select: none;
+  touch-action: none;
+}
+
+.touch-direction-pad {
+  position: relative;
+  width: 134px;
+  height: 134px;
+  overflow: hidden;
+}
+
+.touch-direction-pad-base {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 2px dashed rgba(84, 139, 84, 0.28);
+  background: radial-gradient(circle, rgba(255,255,255,0.44) 0 22%, rgba(143,224,143,0.18) 23% 100%);
+}
+
+.touch-direction-pad-knob {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(210,244,207,0.92));
+  border: 2px solid rgba(91, 172, 91, 0.55);
+  box-shadow: 0 6px 12px rgba(54, 108, 54, 0.16);
+  pointer-events: none;
+}
+
+.touch-direction-pad-label {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: rgba(53, 99, 53, 0.62);
+  pointer-events: none;
+}
+
+.touch-btn {
+  width: 68px;
+  height: 68px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.touch-btn-jump {
+  background: rgba(255, 240, 248, 0.78);
+  color: #8a4f6d;
+}
+
+.touch-direction-pad:active,
+.touch-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.04);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .touch-controls {
+    opacity: 0.2;
+  }
+  .touch-controls:hover {
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: 860px), (max-height: 560px) {
+  .touch-left,
+  .touch-right {
+    bottom: 8px;
+    gap: 8px;
+  }
+
+  .touch-left {
+    left: 8px;
+  }
+
+  .touch-right {
+    right: 8px;
+  }
+
+  .touch-direction-pad {
+    width: clamp(94px, 25vw, 120px);
+    height: clamp(94px, 25vw, 120px);
+  }
+
+  .touch-direction-pad-base {
+    inset: clamp(13px, 3.6vw, 17px);
+  }
+
+  .touch-direction-pad-knob {
+    width: clamp(40px, 11vw, 50px);
+    height: clamp(40px, 11vw, 50px);
+  }
+
+  .touch-direction-pad-label {
+    bottom: clamp(8px, 2vw, 11px);
+    font-size: clamp(10px, 2.7vw, 12px);
+  }
+
+  .touch-btn {
+    width: clamp(48px, 12vw, 62px);
+    height: clamp(48px, 12vw, 62px);
+    font-size: clamp(15px, 3.8vw, 18px);
+  }
+}
+
+@media (max-width: 560px) {
+  .touch-right {
+    max-width: calc(100% - 122px);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+/* touch_config_01: タッチ操作設定はCSS変数で反映し、TouchControlsViewは値の注入だけを担当する。 */
+.touch-controls {
+  opacity: var(--touch-opacity, 0.82);
+}
+
+.touch-controls.touch-disabled {
+  display: none;
+}
+
+.touch-controls.touch-left-handed .touch-left {
+  left: auto;
+  right: 12px;
+}
+
+.touch-controls.touch-left-handed .touch-right {
+  right: auto;
+  left: 12px;
+  justify-content: flex-start;
+}
+
+.touch-direction-pad {
+  width: var(--touch-pad-size, 134px);
+  height: var(--touch-pad-size, 134px);
+}
+
+.touch-btn {
+  width: var(--touch-button-size, 68px);
+  height: var(--touch-button-size, 68px);
+  font-size: clamp(15px, 3.8vw, 22px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .touch-controls {
+    opacity: min(var(--touch-opacity, 0.82), 0.28);
+  }
+  .touch-controls:hover {
+    opacity: var(--touch-opacity, 0.82);
+  }
+}
+
+@media (max-width: 860px), (max-height: 560px) {
+  .touch-controls.touch-left-handed .touch-left {
+    right: 8px;
+  }
+
+  .touch-controls.touch-left-handed .touch-right {
+    left: 8px;
+  }
+
+  .touch-direction-pad {
+    width: min(var(--touch-pad-size, 134px), 25vw);
+    height: min(var(--touch-pad-size, 134px), 25vw);
+  }
+
+  .touch-btn {
+    width: min(var(--touch-button-size, 68px), 12vw);
+    height: min(var(--touch-button-size, 68px), 12vw);
+  }
+}

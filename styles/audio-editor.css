@@ -1,0 +1,106 @@
+/* 責務: sound-editor.html専用のサウンドエディタ外観を定義する。 更新ルール: ゲーム本体/ステージエディタのCSSへ依存せず、この画面のDOM構造と同期して更新する。 */
+@import './components/scrollbar.css';
+
+:root {
+  color-scheme: light;
+  font-family: "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  color: #4d2d43;
+  background: #fff4fb;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(135deg, #fff6fc 0%, #f6fbff 48%, #fff7e8 100%); }
+button, input, select, textarea { font: inherit; }
+button { border: 0; border-radius: 999px; padding: 8px 13px; color: #fff; background: #d75c9f; box-shadow: 0 4px 12px rgba(117, 43, 89, 0.18); cursor: pointer; }
+button:hover { filter: brightness(1.04); transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+button:disabled { opacity: 0.48; cursor: not-allowed; box-shadow: none; }
+button:disabled:hover { filter: none; transform: none; }
+
+.audio-editor { min-height: 100vh; padding: 18px; }
+.audio-editor-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 18px 20px; border: 2px solid rgba(255,255,255,0.85); border-radius: 24px; background: rgba(255,255,255,0.72); box-shadow: 0 12px 40px rgba(142, 80, 128, 0.18); backdrop-filter: blur(10px); }
+.audio-editor-kicker { margin: 0 0 3px; color: #b45693; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.audio-editor h1 { margin: 0; font-size: clamp(24px, 4vw, 36px); }
+.audio-header-actions, .audio-button-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.audio-editor-layout { display: grid; grid-template-columns: 280px minmax(520px, 1fr) 360px; gap: 16px; align-items: start; }
+.audio-editor-panel, .audio-center-panel { min-height: 0; border: 2px solid rgba(255,255,255,0.78); border-radius: 22px; background: rgba(255,255,255,0.74); box-shadow: 0 10px 30px rgba(142, 80, 128, 0.13); }
+.audio-editor-panel { padding: 14px; }
+.audio-center-panel { padding: 16px; }
+.audio-section + .audio-section { margin-top: 18px; }
+.audio-section h2, .audio-form-card h2 { margin: 0 0 10px; font-size: 16px; color: #7b3b65; }
+.audio-tabs { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+.audio-tabs button { background: #bfabc9; }
+.audio-tabs button.is-active { background: #9b58d2; }
+
+.audio-item-list { display: grid; gap: 8px; max-height: 43vh; overflow: auto; padding-right: 4px; }
+.audio-list-item { display: grid; gap: 2px; width: 100%; padding: 10px 12px; border-radius: 16px; text-align: left; color: #5a334c; background: #fff; box-shadow: inset 0 0 0 1px rgba(212, 135, 181, 0.28); }
+.audio-list-item span { color: #9a7a8e; font-size: 12px; }
+.audio-list-item.is-selected { color: #fff; background: linear-gradient(135deg, #d75c9f, #9b58d2); }
+.audio-list-item.is-selected span { color: rgba(255,255,255,0.82); }
+
+.audio-validation-list { margin: 0; padding-left: 18px; max-height: 22vh; overflow: auto; font-size: 13px; line-height: 1.55; }
+.audio-validation-list li.ok { color: #2b8a54; }
+.audio-validation-list li.warn { color: #9a6500; }
+.audio-validation-list li.error { color: #c42c4b; }
+
+.audio-editor-form { display: grid; gap: 14px; }
+.audio-form-card { padding: 14px; border-radius: 20px; background: rgba(255,255,255,0.86); box-shadow: inset 0 0 0 1px rgba(212, 135, 181, 0.22); }
+.audio-card-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.audio-form-grid { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
+.audio-form-grid label { display: grid; gap: 5px; color: #7b526c; font-size: 12px; font-weight: 700; }
+.audio-form-grid label.is-wide { grid-column: span 2; }
+.audio-form-grid input, .audio-form-grid select, .audio-form-grid textarea { width: 100%; border: 1px solid rgba(193, 128, 169, 0.38); border-radius: 12px; padding: 8px 10px; color: #4d2d43; background: #fffafd; outline: none; }
+.audio-form-grid textarea { min-height: 92px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.45; }
+.audio-form-grid input:focus, .audio-form-grid select:focus, .audio-form-grid textarea:focus { border-color: #d75c9f; box-shadow: 0 0 0 3px rgba(215, 92, 159, 0.14); }
+
+.voice-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.voice-list button { display: grid; gap: 2px; min-width: 86px; border-radius: 14px; color: #5a334c; background: #fff; box-shadow: inset 0 0 0 1px rgba(212, 135, 181, 0.26); }
+.voice-list button span { font-size: 11px; color: #9a7a8e; }
+.voice-list button.is-selected { color: #fff; background: #9b58d2; }
+.voice-list button.is-selected span { color: rgba(255,255,255,0.82); }
+
+.audio-export-path { min-height: 18px; margin: 0 0 8px; color: #9a6288; font-size: 13px; }
+.audio-export-section textarea { width: 100%; min-height: 62vh; margin-top: 10px; border: 1px solid rgba(193, 128, 169, 0.38); border-radius: 16px; padding: 12px; color: #4d2d43; background: #fffafd; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.45; resize: vertical; }
+
+@media (max-width: 1180px) {
+  .audio-editor-layout { grid-template-columns: 250px 1fr; }
+  .audio-right-panel { grid-column: 1 / -1; }
+  .audio-export-section textarea { min-height: 320px; }
+}
+
+@media (max-width: 820px) {
+  .audio-editor { padding: 10px; }
+  .audio-editor-header { align-items: flex-start; flex-direction: column; }
+  .audio-editor-layout { grid-template-columns: 1fr; }
+  .audio-form-grid { grid-template-columns: 1fr; }
+  .audio-form-grid label.is-wide { grid-column: auto; }
+}
+
+.section-tabs, .instrument-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.section-tab, .instrument-pill { display: grid; gap: 2px; border-radius: 14px; color: #5a334c; background: #fff; box-shadow: inset 0 0 0 1px rgba(212, 135, 181, 0.26); }
+.section-tab.is-active, .instrument-pill.is-selected { color: #fff; background: #9b58d2; }
+.instrument-pill span { color: #9a7a8e; font-size: 11px; }
+.instrument-pill.is-selected span { color: rgba(255,255,255,0.82); }
+
+.bgm-part-card { overflow: hidden; }
+.timeline-help { margin: 0 0 10px; color: #8d657d; font-size: 13px; line-height: 1.5; }
+.bgm-timeline-shell { overflow-x: auto; margin: 10px 0 14px; padding: 10px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,250,253,0.92)); box-shadow: inset 0 0 0 1px rgba(212, 135, 181, 0.24); }
+.bgm-timeline-ruler, .timeline-lane { display: grid; grid-template-columns: 86px minmax(720px, 1fr); gap: 8px; align-items: stretch; }
+.bgm-timeline-ruler { height: 30px; margin-bottom: 6px; color: #9a6288; font-size: 11px; font-weight: 700; }
+.bgm-timeline { display: grid; gap: 8px; min-width: 820px; }
+.timeline-lane-label { display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; color: #7b526c; font-size: 12px; font-weight: 800; }
+.timeline-lane-track { position: relative; min-height: 46px; border-radius: 14px; overflow: hidden; background: repeating-linear-gradient(90deg, rgba(215,92,159,0.11) 0, rgba(215,92,159,0.11) 1px, transparent 1px, transparent 6.25%), linear-gradient(180deg, #fff, #fff8fc); box-shadow: inset 0 0 0 1px rgba(193, 128, 169, 0.28); }
+.timeline-beat { position: absolute; top: 4px; width: 1px; height: 22px; color: #aa7a98; transform: translateX(-50%); }
+.timeline-beat::before { content: ''; display: block; width: 1px; height: 100%; margin: 0 auto 2px; background: rgba(193,128,169,0.36); }
+.timeline-event { position: absolute; top: 7px; height: 32px; min-width: 26px; padding: 0 8px; border-radius: 11px; color: #fff; background: linear-gradient(135deg, #d75c9f, #9b58d2); box-shadow: 0 4px 10px rgba(117,43,89,0.2); cursor: grab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-event:active { cursor: grabbing; }
+.timeline-event.is-selected { outline: 3px solid rgba(255, 199, 92, 0.82); outline-offset: 1px; filter: brightness(1.08); }
+.timeline-event span { display: block; overflow: hidden; text-overflow: ellipsis; }
+.event-form-grid textarea { min-height: 44px; }
+.section-settings { margin-top: 8px; }
+
+@media (max-width: 820px) {
+  .bgm-timeline-ruler, .timeline-lane { grid-template-columns: 70px minmax(620px, 1fr); }
+  .timeline-lane-label { font-size: 11px; }
+}

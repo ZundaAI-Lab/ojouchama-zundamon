@@ -1,0 +1,143 @@
+<!doctype html>
+<!-- 責務: ステージエディタ専用のDOMルートとCSS/ES Module読み込みを定義する。 更新ルール: ゲーム本体index.htmlとは分離し、編集UIのDOM変更はsrc/editorとstyles/editor.cssに同期する。 -->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>ステージエディタ - お嬢ちゃまずんだもん</title>
+  <link rel="stylesheet" href="./styles/editor.css" />
+</head>
+<body>
+  <div id="stage-editor-root" class="stage-editor">
+    <header class="editor-header">
+      <div>
+        <p class="editor-kicker">Stage Editor</p>
+        <h1>ステージエディタ</h1>
+      </div>
+      <div class="editor-header-actions">
+        <button id="dialogue-edit-btn" type="button">会話編集</button>
+        <button id="preview-btn" type="button">プレビュー起動</button>
+      </div>
+    </header>
+
+    <main class="editor-layout">
+      <aside class="editor-panel editor-left-panel">
+        <section class="editor-section">
+          <h2>ステージ</h2>
+          <select id="stage-select" aria-label="ステージ選択"></select>
+          <div class="editor-button-row">
+            <button id="new-stage-btn" type="button">新規</button>
+            <button id="clone-stage-btn" type="button">複製</button>
+            <button id="undo-btn" type="button">Undo</button>
+            <button id="redo-btn" type="button">Redo</button>
+          </div>
+        </section>
+
+        <section class="editor-section">
+          <h2>基本設定</h2>
+          <form id="basic-form" class="editor-form"></form>
+        </section>
+
+        <section class="editor-section">
+          <h2>保存前検証</h2>
+          <ul id="validation-list" class="validation-list"></ul>
+        </section>
+      </aside>
+
+      <section class="editor-center-panel">
+        <div class="editor-toolbar">
+          <div id="category-tabs" class="category-tabs" role="tablist"></div>
+          <div class="editor-toolbar-actions">
+            <button id="add-object-btn" type="button">追加</button>
+            <button id="duplicate-object-btn" type="button">複製</button>
+            <button id="delete-object-btn" type="button">削除</button>
+          </div>
+        </div>
+        <div class="editor-canvas-shell" aria-label="ステージ編集キャンバス">
+          <canvas id="editor-canvas"></canvas>
+        </div>
+        <p class="editor-help">クリックで選択、Shift/Ctrlクリックで複数選択、空白ドラッグで範囲選択、ドラッグで一括移動、マウスホイールで拡大縮小。ステージ範囲外にも配置できます。</p>
+      </section>
+
+      <aside class="editor-panel editor-right-panel">
+        <section class="editor-section">
+          <h2>配置一覧</h2>
+          <div id="object-list" class="object-list"></div>
+        </section>
+
+        <section class="editor-section">
+          <h2>プロパティ</h2>
+          <form id="property-form" class="editor-form"></form>
+        </section>
+
+        <section class="editor-section editor-export-section">
+          <h2>出力</h2>
+          <p id="path-hint" class="path-hint"></p>
+          <div class="editor-button-row">
+            <button id="export-js-btn" type="button">JS生成</button>
+            <button id="export-json-btn" type="button">JSON生成</button>
+            <button id="import-json-btn" type="button">JSON読込</button>
+          </div>
+          <div class="editor-button-row">
+            <button id="download-js-btn" type="button">JS保存</button>
+            <button id="download-json-btn" type="button">JSON保存</button>
+            <button id="copy-output-btn" type="button">コピー</button>
+          </div>
+          <textarea id="export-output" spellcheck="false" aria-label="生成結果"></textarea>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+
+  <dialog id="dialogue-editor-dialog" class="dialogue-editor-dialog" aria-labelledby="dialogue-editor-title">
+    <div class="dialogue-editor-shell">
+      <header class="dialogue-editor-header">
+        <div>
+          <p class="editor-kicker">Dialogue Editor</p>
+          <h2 id="dialogue-editor-title">会話編集</h2>
+        </div>
+        <div class="editor-header-actions">
+          <span id="dialogue-count-label" class="dialogue-count-label"></span>
+          <button id="dialogue-dialog-close" type="button">閉じる</button>
+        </div>
+      </header>
+
+      <div id="dialogue-event-tabs" class="dialogue-event-tabs" role="tablist" aria-label="会話イベント種別"></div>
+
+      <main class="dialogue-editor-layout">
+        <section class="dialogue-editor-list-panel">
+          <div class="dialogue-editor-panel-title">
+            <h3>会話ウィンドウ</h3>
+            <div class="dialogue-editor-actions">
+              <button id="dialogue-add-btn" type="button">追加</button>
+              <button id="dialogue-insert-btn" type="button">挿入</button>
+              <button id="dialogue-delete-btn" type="button">削除</button>
+              <button id="dialogue-up-btn" type="button">上へ</button>
+              <button id="dialogue-down-btn" type="button">下へ</button>
+            </div>
+          </div>
+          <div id="dialogue-window-list" class="dialogue-window-list"></div>
+        </section>
+
+        <section class="dialogue-editor-form-panel">
+          <div class="dialogue-editor-panel-title">
+            <h3>内容</h3>
+            <div class="dialogue-current-portrait"><img id="dialogue-portrait-preview" alt="" /></div>
+          </div>
+          <form id="dialogue-window-form" class="dialogue-window-form"></form>
+        </section>
+
+        <section class="dialogue-editor-preview-panel">
+          <div class="dialogue-editor-panel-title">
+            <h3>プレビュー</h3>
+          </div>
+          <div id="dialogue-preview" class="dialogue-preview-stage" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+  </dialog>
+
+  <script type="module" src="./src/editor/main.js"></script>
+</body>
+</html>

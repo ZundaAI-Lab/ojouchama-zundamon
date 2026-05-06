@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- 責務: アプリのDOMルートとCSS/ES Module読み込みを定義する。 更新ルール: DOM id変更時はGameApp生成引数とCSS参照を同時に更新する。 -->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>お嬢ちゃまずんだもんと夢みる豆の王国</title>
+  <link rel="stylesheet" href="./styles/index.css" />
+</head>
+<body>
+  <div id="app-root">
+    <div id="game-shell">
+      <canvas id="game-canvas" width="480" height="270" aria-label="game canvas"></canvas>
+      <div id="fx-root" aria-hidden="true"></div>
+      <div id="hud-root"></div>
+      <div id="ui-root"></div>
+      <div id="debug-root"></div>
+    </div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

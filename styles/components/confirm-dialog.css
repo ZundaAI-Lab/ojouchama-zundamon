@@ -1,0 +1,139 @@
+/*
+ * 責務: ゲーム内確認ダイアログの見た目と重ね表示を担当する。
+ * 更新ルール: 確認結果の処理はConfirmDialogControllerへ残し、ここには状態ロジックを持たせない。
+ */
+.confirm-dialog-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 36px);
+  pointer-events: auto;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.36), rgba(255, 233, 244, 0.18) 34%, rgba(58, 37, 55, 0.36) 100%),
+    rgba(70, 42, 64, 0.22);
+  backdrop-filter: blur(4px) saturate(1.04);
+}
+
+.confirm-dialog-card {
+  position: relative;
+  width: min(92%, 520px);
+  padding: clamp(20px, 3.8vw, 30px) clamp(20px, 4.6vw, 36px) clamp(18px, 3.6vw, 28px);
+  text-align: center;
+  border-radius: 28px;
+  border-color: rgba(177, 229, 177, 0.98);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 246, 252, 0.92));
+  box-shadow:
+    0 22px 58px rgba(61, 39, 59, 0.28),
+    0 0 0 3px rgba(255, 255, 255, 0.62) inset;
+  overflow: hidden;
+}
+
+.confirm-dialog-card::before,
+.confirm-dialog-card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0.72;
+}
+
+.confirm-dialog-card::before {
+  width: 150px;
+  height: 150px;
+  top: -78px;
+  left: -44px;
+  background: radial-gradient(circle, rgba(143, 224, 143, 0.34), rgba(143, 224, 143, 0));
+}
+
+.confirm-dialog-card::after {
+  width: 180px;
+  height: 180px;
+  right: -72px;
+  bottom: -86px;
+  background: radial-gradient(circle, rgba(255, 174, 204, 0.34), rgba(255, 174, 204, 0));
+}
+
+.confirm-dialog-mark {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: clamp(46px, 7vw, 58px);
+  height: clamp(46px, 7vw, 58px);
+  margin-bottom: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffe9f1, #ffd5e5);
+  color: #7b4863;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(223, 142, 176, 0.24);
+}
+
+.confirm-dialog-title {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 10px;
+  color: #4c9954;
+  font-size: clamp(26px, 4.4vw, 38px);
+  line-height: 1.12;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.78);
+}
+
+.confirm-dialog-message {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  margin: 0 auto;
+  color: #7b6272;
+  font-size: clamp(15px, 2.1vw, 18px);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.confirm-dialog-message p {
+  margin: 0;
+}
+
+.confirm-dialog-actions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(10px, 2vw, 14px);
+  margin-top: clamp(18px, 3.2vw, 26px);
+}
+
+.confirm-dialog-actions .confirm-dialog-button {
+  width: 100%;
+  min-height: clamp(48px, 7vw, 60px);
+  padding: 12px 18px;
+  font-size: clamp(17px, 2.5vw, 22px);
+}
+
+.confirm-dialog-actions .confirm-dialog-danger-btn {
+  background: linear-gradient(180deg, #ffd8e5, #f2a9c0);
+  color: #6a2f49;
+  box-shadow: 0 6px 16px rgba(223, 142, 176, 0.34);
+}
+
+@media (max-width: 560px), (max-height: 430px) {
+  .confirm-dialog-screen {
+    padding: 12px;
+  }
+
+  .confirm-dialog-card {
+    width: min(96%, 480px);
+    padding: 18px 16px 16px;
+    border-radius: 22px;
+  }
+
+  .confirm-dialog-actions {
+    grid-template-columns: 1fr;
+  }
+}

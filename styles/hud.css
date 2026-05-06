@@ -1,0 +1,445 @@
+/*
+ * 責務: ステージHUD、バナー、スキルゲージのスタイルを担当する。
+ * 更新ルール: HUD以外の画面カードや会話UIを追加しない。
+ */
+#hud-root {
+  padding: 8px;
+}
+
+/* patch_16: HUDは24pxを基準にし、横幅不足時も破綻しない2段構成へ調整 */
+.hud {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+  gap: 10px;
+  font-size: 24px;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.hud-main,
+.hud-skills {
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.hud-main {
+  display: grid;
+  gap: 8px;
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.hud-title-row {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-title {
+  min-width: 0;
+  font-size: 26px;
+  line-height: 1.12;
+  font-weight: 900;
+  color: #4f7f4f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-stage-name {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(52%, 360px);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.72);
+  color: #7a6170;
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hearts {
+  letter-spacing: 2px;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.hearts .lost {
+  opacity: 0.25;
+}
+
+.hud-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.hud-skills {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.skill {
+  display: grid;
+  grid-template-columns: 86px minmax(90px, 1fr) 86px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.skill + .skill {
+  margin-top: 0;
+}
+
+.skill > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill [data-label] {
+  text-align: right;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skill-bar {
+  height: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(80, 90, 80, 0.12);
+}
+
+.skill-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #c3f2a4, #71ca78);
+}
+
+.skill.ready .skill-fill {
+  width: 100% !important;
+  background: linear-gradient(90deg, #ffe494, #f2ba58);
+}
+
+.stage-banner {
+  position: absolute;
+  left: 50%;
+  top: 82px;
+  transform: translateX(-50%);
+  max-width: min(92%, 860px);
+  padding: 12px 20px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #6c4f5d;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.stage-banner.show {
+  opacity: 1;
+}
+
+#hud-root.dialogue-mode {
+  opacity: 0.18;
+  filter: blur(1px);
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+
+.hud.dialogue-mode {
+  pointer-events: none;
+}
+
+.stage-banner.dialogue-mode {
+  display: none;
+}
+
+@media (max-width: 980px), (max-height: 640px) {
+  #hud-root {
+    padding: 6px;
+  }
+
+  .hud {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    font-size: 24px;
+  }
+
+  .hud-main,
+  .hud-skills {
+    padding: 10px 12px;
+  }
+
+  .hud-title {
+    font-size: 24px;
+  }
+
+  .hud-stage-name {
+    max-width: 48%;
+    font-size: 18px;
+  }
+
+  .hearts {
+    font-size: 28px;
+  }
+
+  .hud-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .hud-skills {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .skill {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .skill > span:first-child,
+  .skill [data-label] {
+    text-align: center;
+  }
+
+  .skill-bar {
+    height: 14px;
+  }
+
+  .stage-banner {
+    top: 92px;
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 620px), (max-height: 460px) {
+  .hud {
+    left: 6px;
+    right: 6px;
+    top: 6px;
+    gap: 6px;
+    font-size: 20px;
+  }
+
+  .hud-main,
+  .hud-skills {
+    padding: 8px 9px;
+    border-radius: 16px;
+  }
+
+  .hud-main {
+    gap: 6px;
+  }
+
+  .hud-title {
+    font-size: 21px;
+  }
+
+  .hud-stage-name {
+    max-width: 100%;
+    font-size: 16px;
+    padding: 4px 9px;
+  }
+
+  .hearts {
+    font-size: 24px;
+  }
+
+  .hud-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .hud-skills {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .skill {
+    font-size: 18px;
+    gap: 4px;
+  }
+
+  .skill [data-label] {
+    font-size: 16px;
+  }
+
+  .skill-bar {
+    height: 12px;
+  }
+
+  .stage-banner {
+    top: 78px;
+    padding: 10px 14px;
+    font-size: 20px;
+  }
+}
+
+/* patch_20: トースト文章のはみ出し対策。中央寄せをやめて左開始にする */
+.stage-banner {
+  left: 14px;
+  right: 14px;
+  transform: none;
+  width: auto;
+  max-width: none;
+  box-sizing: border-box;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 980px), (max-height: 640px) {
+  .stage-banner {
+    left: 10px;
+    right: 10px;
+  }
+}
+
+@media (max-width: 620px), (max-height: 460px) {
+  .stage-banner {
+    left: 8px;
+    right: 8px;
+  }
+}
+
+/* patch_21: トーストは枠を広げず、開始位置だけ左に寄せる */
+.stage-banner {
+  left: 14px;
+  right: auto;
+  transform: none;
+  width: auto;
+  max-width: min(calc(100% - 28px), 860px);
+  text-align: center;
+  overflow-wrap: normal;
+}
+
+@media (max-width: 980px), (max-height: 640px) {
+  .stage-banner {
+    left: 10px;
+    right: auto;
+    max-width: min(calc(100% - 20px), 860px);
+  }
+}
+
+@media (max-width: 620px), (max-height: 460px) {
+  .stage-banner {
+    left: 8px;
+    right: auto;
+    max-width: calc(100% - 16px);
+  }
+}
+
+/* patch_22: トースト開始位置を「時間」表示より右側へ戻す */
+.stage-banner {
+  left: clamp(230px, 34%, 420px);
+  right: auto;
+  transform: none;
+  width: auto;
+  max-width: 860px;
+}
+
+@media (max-width: 980px), (max-height: 640px) {
+  .stage-banner {
+    left: clamp(190px, 36%, 280px);
+    right: auto;
+  }
+}
+
+@media (max-width: 620px), (max-height: 460px) {
+  .stage-banner {
+    left: 150px;
+    right: auto;
+  }
+}
+
+/* 風船ライドHUD: 残り風船と封印中アクションを表示する */
+.hud-balloon {
+  position: absolute;
+  left: 12px;
+  top: 176px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #725168;
+  pointer-events: none;
+}
+
+.hud-balloon[hidden] {
+  display: none;
+}
+
+.hud-balloon-title {
+  color: #5d8e55;
+}
+
+.hud-balloon-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 42px;
+}
+
+.hud-balloon-icon {
+  width: 26px;
+  height: 31px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(60, 48, 55, 0.2));
+}
+
+.hud-balloon.hit-flash {
+  animation: balloon-hud-hit 0.22s ease-out 0s 2;
+}
+
+.skill.locked {
+  opacity: 0.5;
+}
+
+.skill.locked .skill-fill {
+  background: linear-gradient(90deg, #cfc6ce, #aaa0aa);
+}
+
+@keyframes balloon-hud-hit {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(-4px); }
+  65% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+@media (max-width: 980px), (max-height: 640px) {
+  .hud-balloon {
+    left: 10px;
+    top: auto;
+    bottom: 78px;
+    font-size: 20px;
+    padding: 8px 12px;
+  }
+
+  .hud-balloon-icon {
+    width: 23px;
+    height: 28px;
+  }
+}

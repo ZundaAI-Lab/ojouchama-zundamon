@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- 責務: サウンドエディタ専用のDOMルートとCSS/ES Module読み込みを定義する。 更新ルール: 音声編集UIの構造変更は src/editor/audio と styles/audio-editor.css に同期し、ゲーム本体index.htmlへ編集専用DOMを混在させない。 -->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>サウンドエディタ - お嬢ちゃまずんだもん</title>
+  <link rel="stylesheet" href="./styles/audio-editor.css" />
+</head>
+<body>
+  <div id="audio-editor-root" class="audio-editor">
+    <header class="audio-editor-header">
+      <div>
+        <p class="audio-editor-kicker">Sound Editor</p>
+        <h1>サウンドエディタ</h1>
+      </div>
+      <div class="audio-header-actions">
+        <button id="preview-audio-btn" type="button">試聴</button>
+        <button id="stop-preview-btn" type="button">停止</button>
+        <button id="export-bgm-btn" type="button">BGM JS生成</button>
+        <button id="export-sfx-btn" type="button">SE JS生成</button>
+      </div>
+    </header>
+
+    <main class="audio-editor-layout">
+      <aside class="audio-editor-panel audio-left-panel">
+        <section class="audio-section">
+          <h2>編集対象</h2>
+          <div class="audio-tabs" role="tablist" aria-label="音声種別">
+            <button id="tab-bgm" type="button" role="tab" aria-controls="audio-editor-form">BGM</button>
+            <button id="tab-sfx" type="button" role="tab" aria-controls="audio-editor-form">効果音</button>
+          </div>
+          <div class="audio-button-row">
+            <button id="new-audio-btn" type="button">新規</button>
+            <button id="clone-audio-btn" type="button">複製</button>
+            <button id="delete-audio-btn" type="button">削除</button>
+          </div>
+        </section>
+
+        <section class="audio-section">
+          <h2>一覧</h2>
+          <div id="audio-item-list" class="audio-item-list"></div>
+        </section>
+
+        <section class="audio-section">
+          <h2>保存前検証</h2>
+          <ul id="audio-validation-list" class="audio-validation-list"></ul>
+        </section>
+      </aside>
+
+      <section class="audio-center-panel">
+        <form id="audio-editor-form" class="audio-editor-form"></form>
+      </section>
+
+      <aside class="audio-editor-panel audio-right-panel">
+        <section class="audio-section audio-export-section">
+          <h2>出力</h2>
+          <p id="audio-export-path" class="audio-export-path"></p>
+          <div class="audio-button-row">
+            <button id="download-output-btn" type="button">JS保存</button>
+            <button id="copy-output-btn" type="button">コピー</button>
+          </div>
+          <textarea id="audio-export-output" spellcheck="false" aria-label="生成結果"></textarea>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="./src/editor/audio/main.js"></script>
+</body>
+</html>

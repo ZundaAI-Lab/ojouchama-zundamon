@@ -1,0 +1,179 @@
+/*
+ * 責務: ガーデン・ステージ選択・ショップ一覧の大型表示補正を担当する。
+ * 更新ルール: garden/stage/shop系の一覧密度調整だけを扱い、タイトル画面や会話UIの規則を混ぜない。
+ */
+.garden-card,
+.garden-card.stage-card,
+.garden-card.shop-card {
+  width: min(96%, 1160px);
+  min-height: min(760px, calc(100% - 10px));
+  max-height: calc(100% - 10px);
+  padding: clamp(22px, 3vh, 38px) clamp(26px, 3.6vw, 48px);
+  gap: clamp(14px, 2vh, 24px);
+}
+
+.garden-header .menu-title,
+.stage-card .garden-header .menu-title {
+  font-size: clamp(40px, 4vw, 60px);
+  line-height: 1.02;
+}
+
+.garden-header .menu-subtitle,
+.stage-card .garden-header .menu-subtitle {
+  font-size: clamp(20px, 1.8vw, 24px);
+  line-height: 1.34;
+}
+
+.garden-coin,
+.stage-card .garden-coin {
+  font-size: clamp(24px, 2vw, 32px);
+  padding: 12px 20px;
+}
+
+.garden-coin img {
+  width: clamp(30px, 2.6vw, 40px);
+  height: clamp(30px, 2.6vw, 40px);
+}
+
+.stage-section,
+.shop-section,
+.stage-card .stage-section {
+  padding: clamp(16px, 2vh, 26px);
+  overflow: auto;
+}
+
+.section-title-row h2,
+.stage-card .stage-section h2 {
+  font-size: clamp(30px, 2.8vw, 42px);
+}
+
+.section-title-row span {
+  font-size: clamp(20px, 1.6vw, 26px);
+}
+
+.stage-list,
+.stage-card .stage-list,
+.upgrade-list {
+  gap: clamp(12px, 1.6vh, 20px);
+}
+
+.stage-select,
+.stage-card .stage-select,
+.upgrade-select {
+  min-height: clamp(104px, 12vh, 142px);
+  padding: clamp(18px, 2.2vh, 26px) clamp(22px, 2.4vw, 34px);
+  gap: clamp(18px, 2.2vw, 30px);
+  border-radius: 28px;
+}
+
+.stage-select img,
+.stage-card .stage-select img {
+  width: clamp(68px, 6vw, 90px);
+  height: clamp(72px, 6.4vw, 98px);
+}
+
+.stage-select strong,
+.stage-card .stage-select strong,
+.upgrade-select strong {
+  font-size: clamp(28px, 2.4vw, 38px);
+  line-height: 1.12;
+}
+
+.stage-select span,
+.stage-card .stage-select span,
+.upgrade-select span {
+  font-size: clamp(22px, 1.75vw, 29px);
+  line-height: 1.32;
+}
+
+.stage-select em,
+.stage-card .stage-select em,
+.upgrade-select em {
+  font-size: clamp(20px, 1.55vw, 26px);
+  padding: 6px 12px;
+}
+
+.garden-actions .primary-btn,
+.garden-actions .secondary-btn,
+.stage-card .garden-actions .primary-btn,
+.stage-card .garden-actions .secondary-btn {
+  min-width: clamp(190px, 18vw, 260px);
+  font-size: clamp(23px, 1.8vw, 30px);
+  padding: 16px 28px;
+}
+
+@media (max-height: 620px), (max-width: 860px) {
+  .garden-card,
+  .garden-card.stage-card,
+  .garden-card.shop-card {
+    width: min(98%, 860px);
+    padding: 18px 20px;
+    gap: 12px;
+  }
+
+  .garden-header .menu-title,
+  .stage-card .garden-header .menu-title {
+    font-size: 34px;
+  }
+
+  .garden-header .menu-subtitle,
+  .stage-card .garden-header .menu-subtitle {
+    font-size: 18px;
+  }
+
+  .garden-coin,
+  .stage-card .garden-coin {
+    font-size: 20px;
+  }
+
+  .section-title-row h2,
+  .stage-card .stage-section h2 {
+    font-size: 27px;
+  }
+
+  .section-title-row span {
+    display: none;
+  }
+
+  .stage-select,
+  .stage-card .stage-select,
+  .upgrade-select {
+    min-height: 92px;
+    padding: 14px 16px;
+    gap: 14px;
+  }
+
+  .stage-select img,
+  .stage-card .stage-select img {
+    width: 58px;
+    height: 64px;
+  }
+
+  .stage-select strong,
+  .stage-card .stage-select strong,
+  .upgrade-select strong {
+    font-size: 24px;
+  }
+
+  .stage-select span,
+  .stage-card .stage-select span,
+  .upgrade-select span {
+    font-size: 19px;
+    line-height: 1.24;
+  }
+
+  .stage-select em,
+  .stage-card .stage-select em,
+  .upgrade-select em {
+    font-size: 17px;
+  }
+
+  .garden-actions .primary-btn,
+  .garden-actions .secondary-btn,
+  .stage-card .garden-actions .primary-btn,
+  .stage-card .garden-actions .secondary-btn {
+    min-width: 150px;
+    font-size: 19px;
+    padding: 12px 18px;
+  }
+}

@@ -1,0 +1,57 @@
+/*
+ * 責務: メニュー画面共通カード・タイトル・アクション・初期リザルト行のスタイルを担当する。
+ * 更新ルール: 画面固有の追加装飾は screens/ 側に置き、共通クラスの影響範囲を広げすぎない。
+ */
+.menu-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  pointer-events: none;
+}
+.menu-card {
+  width: min(100%, 420px);
+  padding: 18px 22px;
+  text-align: center;
+  pointer-events: auto;
+}
+.menu-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.2;
+  color: #5b9a56;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.75);
+}
+.menu-subtitle {
+  margin: 0 0 14px;
+  color: #7b6272;
+  font-size: 14px;
+}
+.menu-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.garden-actions {
+  margin-top: 8px;
+}
+
+.result-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  text-align: left;
+}
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 12px;
+}
+

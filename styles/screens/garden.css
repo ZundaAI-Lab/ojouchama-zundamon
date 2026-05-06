@@ -1,0 +1,207 @@
+/*
+ * 責務: ガーデン・ステージ選択・ショップ一覧の基本スタイルを担当する。
+ * 更新ルール: 選択行の構造変更時は GardenView/ShopView のDOMと同時に更新する。
+ */
+.garden-screen {
+  position: absolute;
+  inset: 0;
+  padding: 12px;
+  pointer-events: none;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.garden-card {
+  width: min(100%, 456px);
+  height: 100%;
+  max-height: 252px;
+  padding: 10px 12px;
+  pointer-events: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-card {
+  width: min(100%, 420px);
+}
+
+
+.garden-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.garden-header .menu-title {
+  font-size: 22px;
+  text-align: left;
+}
+
+.garden-header .menu-subtitle {
+  text-align: left;
+  margin: 0;
+  font-size: 12px;
+}
+
+.garden-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.garden-coin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 800;
+  background: rgba(255,255,255,0.72);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.garden-coin img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+
+.stage-section,
+.shop-section {
+  min-height: 0;
+  flex: 1;
+  margin-top: 8px;
+}
+
+
+.garden-section {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.48);
+}
+
+.garden-section h2 {
+  margin: 0 0 8px;
+  color: #5b9a56;
+  font-size: 15px;
+}
+
+.stage-list,
+.upgrade-list {
+  display: grid;
+  gap: 7px;
+}
+
+.stage-select,
+.upgrade-select {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.78);
+  color: #4e5a4c;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(80, 100, 80, 0.08);
+}
+
+.stage-select:hover,
+.upgrade-select:hover {
+  filter: brightness(1.02);
+  transform: translateY(-1px);
+}
+
+.stage-select.locked,
+.stage-select:disabled,
+.upgrade-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+  transform: none;
+}
+
+.stage-select img {
+  width: 30px;
+  height: 34px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.stage-select strong,
+.upgrade-select strong {
+  display: block;
+  font-size: 11px;
+  color: #527b4d;
+}
+
+.stage-select span,
+.upgrade-select span {
+  display: block;
+  font-size: 9px;
+  line-height: 1.35;
+  color: #6b6f63;
+}
+
+.stage-select em,
+.upgrade-select em {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  color: #a06c86;
+  font-style: normal;
+}
+
+
+.garden-notice {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(430px, calc(100% - 36px));
+  padding: 22px 24px;
+  pointer-events: none;
+  text-align: center;
+  color: #527b4d;
+  font-weight: 900;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.86);
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(.2,1.3,.25,1);
+  z-index: 32;
+  box-shadow: 0 18px 38px rgba(104, 82, 116, 0.22), 0 0 0 4px rgba(255,255,255,0.38) inset;
+}
+
+.garden-notice::before {
+  content: "";
+  position: absolute;
+  inset: -999px;
+  background: rgba(255, 247, 253, 0.34);
+  z-index: -1;
+}
+
+.garden-notice-title {
+  font-size: 25px;
+  line-height: 1.2;
+  color: #5b9a56;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.92);
+}
+
+.garden-notice-body {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #a05d86;
+}
+
+.garden-notice.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}

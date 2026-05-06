@@ -1,0 +1,28 @@
+/*
+ * 責務: 大型UI化パッチのメニュー共通スケール調整を担当する。
+ * 更新ルール: 読みやすさ調整だけを置き、個別画面の配置変更は screens/ 側に分ける。
+ */
+/* patch_06: 会話本文20pxを基準に各メニュー文字を読みやすく再調整 */
+.menu-card {
+  width: min(100%, 520px);
+  padding: 24px 28px;
+}
+
+.menu-title {
+  font-size: 34px;
+  line-height: 1.18;
+}
+
+.menu-subtitle {
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+
+.menu-actions .primary-btn,
+.menu-actions .secondary-btn {
+  padding: 13px 24px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+

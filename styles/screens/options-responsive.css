@@ -1,0 +1,378 @@
+/*
+ * 責務: オプション画面の大型UI化とチェック項目補正を担当する。
+ * 更新ルール: options.css の後続補正として読み込まれる前提を崩さない。
+ */
+
+.option-card {
+  width: min(94%, 860px);
+  padding: clamp(22px, 2.6vh, 34px) clamp(26px, 3.2vw, 42px);
+}
+
+.option-card .menu-title {
+  font-size: clamp(38px, 3.4vw, 52px);
+  line-height: 1.08;
+}
+
+.option-section-title {
+  font-size: clamp(23px, 1.7vw, 30px);
+}
+
+.option-section-note {
+  font-size: clamp(14px, 1.1vw, 18px);
+}
+
+.option-list {
+  gap: clamp(12px, 1.5vh, 18px);
+  margin: clamp(14px, 2vh, 24px) 0;
+  text-align: left;
+}
+
+.option-list label,
+.key-config-row {
+  display: grid;
+  gap: 10px;
+  padding: clamp(12px, 1.5vh, 18px) clamp(14px, 1.8vw, 22px);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(206, 233, 206, 0.92);
+  color: #52624e;
+  font-size: clamp(20px, 1.55vw, 27px);
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.option-list input,
+.option-list select {
+  width: 100%;
+  font: inherit;
+}
+
+.option-list input[type="range"] {
+  min-height: 32px;
+}
+
+.option-list input[type="checkbox"] {
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.option-list select {
+  min-height: 46px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(177, 229, 177, 0.96);
+  background: rgba(255,255,255,0.92);
+  color: #4b4650;
+  font-size: clamp(19px, 1.35vw, 24px);
+  font-weight: 800;
+}
+
+.key-bind-btn,
+.key-default-btn {
+  font-size: clamp(15px, 1.15vw, 20px);
+  min-height: 42px;
+}
+
+.option-card .menu-actions .primary-btn,
+.option-card .menu-actions .secondary-btn {
+  font-size: clamp(20px, 1.4vw, 25px);
+  padding: 14px 28px;
+}
+
+@media (max-height: 720px), (max-width: 860px) {
+  .option-card {
+    width: min(96%, 780px);
+    padding: 16px 18px;
+  }
+
+  .option-card .menu-title {
+    font-size: 34px;
+  }
+
+  .option-section {
+    margin-bottom: 14px;
+  }
+
+  .option-section-title {
+    font-size: 22px;
+  }
+
+  .option-list {
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .option-list label,
+  .key-config-row {
+    padding: 10px 12px;
+    border-radius: 16px;
+    font-size: 18px;
+  }
+
+  .option-list input[type="range"] {
+    min-height: 28px;
+  }
+
+  .option-list input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+
+  .option-list select {
+    min-height: 40px;
+    font-size: 18px;
+  }
+
+  .key-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .key-config-buttons {
+    grid-template-columns: repeat(2, minmax(74px, 1fr)) auto;
+  }
+
+  .key-bind-btn,
+  .key-default-btn {
+    min-height: 38px;
+    font-size: 16px;
+  }
+
+  .option-card .menu-actions .primary-btn,
+  .option-card .menu-actions .secondary-btn {
+    font-size: 18px;
+    padding: 12px 20px;
+  }
+}
+
+.option-list label.option-check-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.option-list label.option-check-label input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.option-list label.option-check-label span {
+  display: inline-block;
+  line-height: 1.2;
+}
+
+@media (max-height: 620px), (max-width: 860px) {
+  .option-list label.option-check-label {
+    gap: 10px;
+  }
+}
+
+@media (max-height: 720px), (max-width: 860px) {
+  .option-nav-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* resize_fix_01: オプション系3画面はカード全体を画面内に収め、本文だけをスクロールさせる。 */
+.option-screen,
+.key-config-screen,
+.touch-control-screen {
+  box-sizing: border-box;
+  padding: clamp(6px, 1.8vh, 14px) clamp(6px, 1.8vw, 14px);
+  align-items: center;
+  justify-items: center;
+}
+
+.option-screen .option-card,
+.key-config-screen .option-card,
+.touch-control-screen .option-card {
+  box-sizing: border-box;
+  width: min(94%, 860px);
+  height: min(94%, 760px);
+  max-height: calc(100% - 8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.key-config-screen .option-card,
+.touch-control-screen .option-card {
+  width: min(96%, 940px);
+}
+
+.option-card > .menu-title,
+.option-card > .menu-subtitle,
+.option-card > .menu-actions {
+  flex: 0 0 auto;
+}
+
+.option-card > .option-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 6px;
+}
+
+.option-card > .menu-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.4vh, 14px);
+  margin-top: clamp(8px, 1.6vh, 16px);
+}
+
+@media (max-height: 720px), (max-width: 860px) {
+  .option-screen,
+  .key-config-screen,
+  .touch-control-screen {
+    padding: 5px;
+  }
+
+  .option-screen .option-card,
+  .key-config-screen .option-card,
+  .touch-control-screen .option-card {
+    width: min(98%, 900px);
+    height: calc(100% - 8px);
+    max-height: calc(100% - 8px);
+    padding: 12px 14px;
+  }
+
+  .option-card .menu-title {
+    margin: 0 0 6px;
+    font-size: clamp(28px, 4.2vh, 34px);
+    line-height: 1.04;
+  }
+
+  .option-card .menu-subtitle {
+    margin: 0 0 8px;
+    font-size: clamp(13px, 2.4vh, 16px);
+    line-height: 1.32;
+  }
+
+  .option-card > .option-scroll {
+    padding-right: 4px;
+  }
+
+  .option-card > .menu-actions {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .option-section-title {
+    margin-bottom: 5px;
+    font-size: clamp(18px, 3vh, 22px);
+  }
+
+  .option-section-note {
+    margin-bottom: 7px;
+    font-size: clamp(12px, 2.2vh, 14px);
+    line-height: 1.35;
+  }
+
+  .key-config-list {
+    gap: 6px;
+  }
+}
+
+@media (max-height: 620px) and (min-width: 700px) {
+  .option-screen .option-list,
+  .touch-control-screen .touch-option-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .key-config-screen .key-config-row {
+    grid-template-columns: minmax(96px, 0.8fr) minmax(220px, 1.6fr);
+    gap: 8px;
+  }
+
+  .option-nav-list {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-height: 520px) {
+  .option-screen .option-card,
+  .key-config-screen .option-card,
+  .touch-control-screen .option-card {
+    height: calc(100% - 4px);
+    max-height: calc(100% - 4px);
+    padding: 8px 10px;
+    border-radius: 18px;
+  }
+
+  .option-card .menu-title {
+    font-size: clamp(22px, 5vh, 28px);
+    margin-bottom: 4px;
+  }
+
+  .option-card .menu-subtitle {
+    display: none;
+  }
+
+  .option-section {
+    margin-bottom: 8px;
+  }
+
+  .option-list {
+    gap: 7px;
+    margin: 8px 0;
+  }
+
+  .option-list label,
+  .key-config-row {
+    padding: 7px 9px;
+    border-radius: 14px;
+    font-size: clamp(14px, 3.2vh, 16px);
+    gap: 6px;
+  }
+
+  .key-bind-btn,
+  .key-default-btn {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: clamp(12px, 2.8vh, 14px);
+  }
+
+  .key-config-buttons {
+    gap: 5px;
+  }
+
+  .option-list select {
+    min-height: 32px;
+    font-size: 14px;
+  }
+
+  .option-list input[type="range"] {
+    min-height: 22px;
+  }
+
+  .option-card .menu-actions .primary-btn,
+  .option-card .menu-actions .secondary-btn {
+    font-size: clamp(14px, 3.2vh, 16px);
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 620px) {
+  .option-screen .option-card,
+  .key-config-screen .option-card,
+  .touch-control-screen .option-card {
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    max-height: calc(100% - 8px);
+  }
+
+  .key-config-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .key-default-btn {
+    grid-column: 1 / -1;
+  }
+}

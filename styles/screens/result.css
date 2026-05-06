@@ -1,0 +1,18 @@
+/*
+ * 責務: リザルト画面の成績グリッド表示を担当する。
+ * 更新ルール: ResultView の表示項目変更時にだけ更新する。
+ */
+.result-grid {
+  gap: 10px;
+}
+
+.result-row {
+  padding: 11px 14px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.result-row strong {
+  font-size: 20px;
+}
+

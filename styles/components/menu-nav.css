@@ -1,0 +1,35 @@
+/*
+ * 責務: キーボード/ゲームパッド選択状態とフォーカス表示を担当する。
+ * 更新ルール: MenuNavigator が付ける is-selected 表示に限定し、画面固有装飾を追加しない。
+ */
+/* keyboard_nav: メニュー全般をマウスなしで操作するための選択表示 */
+.primary-btn.is-selected,
+.secondary-btn.is-selected,
+.stage-select.is-selected,
+.upgrade-select.is-selected,
+.option-item.is-selected {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.option-item {
+  cursor: pointer;
+}
+
+.option-item strong {
+  float: right;
+  color: #4f8e50;
+  font-weight: 900;
+}
+
+.option-item.is-selected {
+  background: rgba(247, 255, 238, 0.9);
+  border-color: rgba(95, 191, 106, 0.98);
+}
+
+.touch-btn:focus,
+.touch-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 8px 18px rgba(40, 80, 40, 0.12);
+}
+
