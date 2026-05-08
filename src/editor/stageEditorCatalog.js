@@ -3,6 +3,7 @@
  * 更新ルール: Runtimeの生成処理は参照せず、配置可能データのUIメタ情報だけをここへ追加する。
  * 更新ルール: 種類別フィールドは、現行Runtimeが参照するプロパティだけを定義し、未実装の新規パラメータは追加しない。
  * 更新ルール: page/wishLeaf/ribbonBridgeのactiveDurationはPlatformGimmickSystemが参照し、0秒を無制限として扱う。
+ * 更新ルール: 風足場は kind: 'wind' と windStyle で配置し、効果は共通のWind系として扱う。
  */
 import { PLATFORM_KINDS } from '../data/platformDefs.js';
 import { ITEM_DEFS } from '../data/itemDefs.js';
@@ -11,6 +12,9 @@ import { ASSET_MANIFEST } from '../data/assetManifest.js';
 import { BGM_OPTIONS } from '../data/audio/audioCatalog.js';
 import { PROJECTILE_CATALOG } from '../actors/projectile/ProjectileCatalog.js';
 import { DOOR_OPEN_CONDITIONS, DOOR_OPEN_CONDITION_OPTIONS } from '../data/doorDefs.js';
+import { VINE_STYLE_DEFS, VINE_STYLE_ORDER } from '../config/vineStyleDefs.js';
+import { PLATFORM_STYLE_DEFS, PLATFORM_STYLE_ORDER } from '../config/platformStyleDefs.js';
+import { WIND_STYLE_DEFS, WIND_STYLE_ORDER } from '../config/windStyleDefs.js';
 
 export const EDITOR_BACKGROUND_KEYS = Object.freeze(Object.keys(ASSET_MANIFEST.images).filter(key => key.startsWith('bg_')));
 
@@ -33,9 +37,17 @@ export const EDITOR_DIALOGUE_PORTRAIT_OPTIONS = Object.freeze(Object.keys(ASSET_
   .map(key => ({ value: key, label: key })));
 
 const PLATFORM_KIND_VALUES = Object.freeze(Object.values(PLATFORM_KINDS));
+const PLATFORM_KIND_LABELS = Object.freeze({
+  [PLATFORM_KINDS.NORMAL]: '通常足場',
+  [PLATFORM_KINDS.VINE_PLATFORM]: '蔓の足場',
+  [PLATFORM_KINDS.WIND]: '風足場',
+});
 const RESIDENT_TYPE_VALUES = Object.freeze(Object.keys(RESIDENT_DEFS));
 const PROJECTILE_KIND_VALUES = Object.freeze(Object.keys(PROJECTILE_CATALOG));
 const AIM_MODE_OPTIONS = Object.freeze(['towardTargetX', 'towardTargetUpArc', 'horizontal_or_45_by_target_y', 'towardTarget', 'fixed']);
+const VINE_STYLE_OPTIONS = Object.freeze(VINE_STYLE_ORDER.map(value => ({ value, label: VINE_STYLE_DEFS[value].label })));
+const PLATFORM_STYLE_OPTIONS = Object.freeze(PLATFORM_STYLE_ORDER.map(value => ({ value, label: PLATFORM_STYLE_DEFS[value].label })));
+const WIND_STYLE_OPTIONS = Object.freeze(WIND_STYLE_ORDER.map(value => ({ value, label: WIND_STYLE_DEFS[value].label })));
 
 const numberField = (key, label, options = {}) => ({ key, label, type: 'number', ...options });
 const textField = (key, label, options = {}) => ({ key, label, type: 'text', ...options });
@@ -60,12 +72,27 @@ export const EDITOR_CATEGORY_DEFS = Object.freeze({
 
 export const EDITOR_OBJECT_PRESETS = Object.freeze({
   platforms: Object.values(PLATFORM_KINDS).map(kind => ({
-    label: kind === PLATFORM_KINDS.NORMAL ? '通常足場' : `足場: ${kind}`,
-    value: { x: 96, y: 208, w: 128, h: 16, kind, active: true, groupId: '' },
+    label: PLATFORM_KIND_LABELS[kind] || `足場: ${kind}`,
+    value: {
+      x: 96,
+      y: 208,
+      w: 128,
+      h: 16,
+      kind,
+      active: true,
+      groupId: '',
+      ...(kind === PLATFORM_KINDS.WIND ? { windStyle: 'dream', windDir: 1 } : {}),
+    },
   })),
   items: Object.keys(ITEM_DEFS).map(kind => ({
     label: ITEM_DEFS[kind].label || kind,
-    value: { x: 160, y: 180, kind, groupId: '' },
+    value: {
+      x: 160,
+      y: 180,
+      kind,
+      groupId: '',
+      ...(kind === 'invitation' ? { switchId: 'switch_1', switchMode: 'latch', clockDoorId: 'clock_door_1', clockStep: 1 } : {}),
+    },
   })),
   residents: Object.keys(RESIDENT_DEFS).map(type => ({
     label: type,
@@ -221,6 +248,10 @@ export const EDITOR_PLATFORM_FIELD_GROUPS = Object.freeze({
       checkboxField('active', '有効', { defaultValue: true }),
     ],
   },
+  vinePlatform: {
+    label: '蔓の足場',
+    fields: [selectField('vineStyle', 'スタイル', VINE_STYLE_OPTIONS, { defaultValue: 'current' })],
+  },
   switchLink: {
     label: 'スイッチ連動',
     fields: [
@@ -229,6 +260,14 @@ export const EDITOR_PLATFORM_FIELD_GROUPS = Object.freeze({
     ],
   },
   byKind: {
+    [PLATFORM_KINDS.NORMAL]: {
+      label: '通常床',
+      fields: [selectField('platformStyle', 'スタイル', PLATFORM_STYLE_OPTIONS, { defaultValue: 'normal' })],
+    },
+    [PLATFORM_KINDS.VINE_PLATFORM]: {
+      label: '蔓の足場',
+      fields: [selectField('vineStyle', 'スタイル', VINE_STYLE_OPTIONS, { defaultValue: 'current' })],
+    },
     [PLATFORM_KINDS.SPOON]: {
       label: 'スプーン足場',
       fields: [
@@ -251,13 +290,12 @@ export const EDITOR_PLATFORM_FIELD_GROUPS = Object.freeze({
       label: '願いの葉',
       fields: [numberField('activeDuration', '有効時間（秒・0=無制限）', { step: 0.1, min: 0, defaultValue: 4.0 })],
     },
-    [PLATFORM_KINDS.DREAM_WIND]: {
+    [PLATFORM_KINDS.WIND]: {
       label: '風足場',
-      fields: [numberField('windDir', '風向き（-1/1）', { step: 1, defaultValue: 1 })],
-    },
-    [PLATFORM_KINDS.RIBBON_WIND]: {
-      label: 'リボン風',
-      fields: [numberField('windDir', '風向き（-1/1）', { step: 1, defaultValue: 1 })],
+      fields: [
+        selectField('windStyle', 'スタイル', WIND_STYLE_OPTIONS, { defaultValue: 'dream' }),
+        numberField('windDir', '風向き（-1/1）', { step: 1, defaultValue: 1 }),
+      ],
     },
     [PLATFORM_KINDS.RIBBON_BRIDGE]: {
       label: 'リボン橋',
@@ -499,6 +537,34 @@ export function getEditorFieldGroupsForObject(category, object = {}) {
     if (kindGroup) groups.push(cloneFieldGroup(kindGroup));
     groups.push(cloneFieldGroup(EDITOR_PLATFORM_FIELD_GROUPS.switchLink));
     return groups;
+  }
+
+  if (category === 'items') {
+    const common = {
+      label: 'アイテム',
+      fields: [
+        selectField('kind', '種類', Object.keys(ITEM_DEFS).map(kind => ({ value: kind, label: ITEM_DEFS[kind].label || kind }))),
+        textField('groupId', 'グループID'),
+        numberField('x', 'X', { step: 8 }),
+        numberField('y', 'Y', { step: 8 }),
+        numberField('value', '値', { step: 1, min: 1 }),
+        textField('imageKey', '画像キー'),
+      ],
+    };
+    if ((object.kind || 'coin') !== 'invitation') return [common];
+    return [common, {
+      label: '招待状スイッチ',
+      fields: [
+        textField('switchId', 'スイッチID'),
+        selectField('switchMode', 'ON方式', [
+          { value: 'latch', label: '入手後ずっとON' },
+          { value: 'timed', label: '一定時間だけON' },
+        ], { defaultValue: 'latch' }),
+        numberField('switchDuration', 'ON時間', { step: 0.1, min: 0 }),
+        textField('clockDoorId', '時計扉ID'),
+        numberField('clockStep', '針の進み量', { step: 1, defaultValue: 1 }),
+      ],
+    }];
   }
 
   if (category === 'residents') {

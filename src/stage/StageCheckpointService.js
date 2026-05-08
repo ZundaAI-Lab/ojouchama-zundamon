@@ -13,6 +13,7 @@ const CHECKPOINT_H = 46;
 const CHECKPOINT_RESPAWN_Y_OFFSET = 0.5;
 const CHECKPOINT_OK_PLATFORM_KINDS = new Set([
   PLATFORM_KINDS.NORMAL,
+  PLATFORM_KINDS.VINE_PLATFORM,
   PLATFORM_KINDS.CLOUD,
   PLATFORM_KINDS.JAM,
   PLATFORM_KINDS.JAM_HARD,
@@ -36,7 +37,7 @@ function isUsableCheckpointPlatform(platform) {
 }
 
 function platformTargetScore(platform, targetX) {
-  const kindPenalty = platform.kind === PLATFORM_KINDS.NORMAL ? 0 : 90;
+  const kindPenalty = platform.kind === PLATFORM_KINDS.NORMAL || platform.kind === PLATFORM_KINDS.VINE_PLATFORM ? 0 : 90;
   return Math.abs((platform.x + platform.w / 2) - targetX) + kindPenalty;
 }
 

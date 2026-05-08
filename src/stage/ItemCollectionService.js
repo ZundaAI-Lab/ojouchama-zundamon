@@ -1,6 +1,7 @@
 /**
  * 責務: ステージ内アイテムの取得判定、所持数/回復反映、取得演出、取得SEを共通処理として担当する。
  * 更新ルール: 通常ステージ・特殊ライドのどちらから呼ばれても同じ効果になるよう、アイテム種別ごとの反映をここへ集約する。
+ * 更新ルール: 夢のしずくは取得時点では保存せず、ゴール時にStageClearServiceが確定保存できるよう保留フラグだけを立てる。
  */
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { addStageTeacups } from './StageTeacupInventory.js';
@@ -9,6 +10,7 @@ const ITEM_SFX_BY_KIND = Object.freeze({
   coin: 'item_coin',
   largeBeanCoin: 'item_large_coin',
   scone: 'item_scone',
+  invitation: 'item_teacup',
   teacup: 'item_teacup',
   dreamDrop: 'item_dream_drop',
 });
@@ -54,6 +56,14 @@ export class ItemCollectionService {
     item.alive = false;
     if (item.effect === 'coin') runtime.coins += item.value;
     if (item.effect === 'heal') runtime.player.hp = Math.min(runtime.player.maxHp, runtime.player.hp + item.value);
+    if (item.kind === 'dreamDrop') runtime.pendingDreamDropStageIds?.add?.(runtime.stage.id);
+    if (item.effect === 'switch' && item.switchId) {
+      if (item.switchMode === 'timed') runtime.switchState?.requestTimedOn?.(item.switchId, item.switchDuration || 1);
+      else runtime.switchState?.requestLatchedOn?.(item.switchId);
+    }
+    if (item.clockDoorId) {
+      runtime.switchTargetSystem?.clockDoorSystem?.requestAdvanceByDoorId?.(item.clockDoorId, item.clockStep || 1);
+    }
     const center = typeof item.getCenter === 'function' ? item.getCenter() : { x: item.x + item.w / 2, y: item.y + item.h / 2 };
     runtime.spawnSparkles(center.x, center.y, '#fff2a2', 8);
     runtime.app.audio.playSfx(getItemSfx(item));

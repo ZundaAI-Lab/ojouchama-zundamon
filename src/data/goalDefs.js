@@ -10,7 +10,7 @@ export const GOAL_DEFS = Object.freeze({
     label: '夢のしずく',
     imageKey: null,
     hitbox: Object.freeze({ w: 22, h: 42 }),
-    draw: null,
+    draw: Object.freeze({ w: 28, h: 30, offsetX: 0, offsetY: 0 }),
   }),
   sign_arrow: Object.freeze({
     variant: 'sign_arrow',

@@ -119,7 +119,7 @@ const stage = {
       "x": 0,
       "y": 320,
       "w": 984,
-      "h": 40,
+      "h": 48,
       "active": true
     },
     {

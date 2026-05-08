@@ -1,7 +1,17 @@
 /**
  * 責務: ガーデン画面のステージ選択DOMを生成する。
  * 更新ルール: ステージ解放判定や遷移処理は GardenScene に残し、ここではDOM作成だけを担当する。
+ * 更新ルール: ステージカードの夢のしずく表示はSave由来の集計結果だけを受け取り、獲得判定は持たない。
  */
+function renderDreamDropIcons(app, dreamDrops = {}) {
+  const count = Math.max(0, Math.floor(dreamDrops.acquired || 0));
+  if (count <= 0) return '';
+  const src = app.assets.getImage('icon_dream_drop')?.src || '';
+  const max = Math.max(count, Math.floor(dreamDrops.max || count));
+  const icons = Array.from({ length: count }, () => `<img src="${src}" alt="">`).join('');
+  return `<div class="stage-dream-drops" aria-label="夢のしずく ${count}/${max}">${icons}</div>`;
+}
+
 export class GardenView {
   constructor(app) {
     this.app = app;
@@ -37,7 +47,7 @@ export class GardenView {
     return wrapper;
   }
 
-  createStageButton({ world, index, unlocked, record }) {
+  createStageButton({ world, index, unlocked, record, dreamDrops }) {
     const row = document.createElement('button');
     row.className = `stage-select ${unlocked ? '' : 'locked'}`;
     row.disabled = !unlocked;
@@ -49,7 +59,10 @@ export class GardenView {
           <strong>${world.title}</strong>
           <em>${record?.cleared ? `クリア / 最高 ${record.bestRank || 'C'} / ${Math.floor(record.bestTime)}秒` : unlocked ? '未クリア' : '前ステージクリアで解放'}</em>
         </div>
-        <span>${world.desc}</span>
+        <div class="stage-desc-row">
+          <span>${world.desc}</span>
+          ${renderDreamDropIcons(this.app, dreamDrops)}
+        </div>
       </div>
     `;
     return row;

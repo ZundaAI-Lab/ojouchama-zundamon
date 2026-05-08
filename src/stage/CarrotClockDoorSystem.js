@@ -1,6 +1,6 @@
 /**
  * 責務: にんじん時計扉の時刻状態、複数switchId入力の立ち上がり検出、針アニメーション、開閉判定を担当する。
- * 更新ルール: スイッチ側のON/OFF生成はSwitchGimmickSystem/SwitchStateSystemへ任せ、ここでは扉側がON入力を時刻増減として解釈する。
+ * 更新ルール: スイッチ側のON/OFF生成はSwitchGimmickSystem/SwitchStateSystemへ任せ、ここでは扉側がON入力や収集アイテム通知を時刻増減として解釈する。
  * 更新ルール: 扉の衝突反映はSwitchTargetSystemへ返すdesiredOpenに限定し、物理形状の生成や描画は持たない。
  */
 export const CARROT_CLOCK_DOOR_KIND = 'carrotClockDoor';
@@ -121,6 +121,22 @@ export class CarrotClockDoorSystem {
   constructor(stage, switchState) {
     this.stage = stage;
     this.switchState = switchState;
+    this.pendingDoorSteps = new Map();
+  }
+
+  requestAdvanceByDoorId(doorId, delta = 1) {
+    if (!doorId || !isFiniteNumber(delta)) return;
+    const normalizedDelta = Math.trunc(delta);
+    if (normalizedDelta === 0) return;
+    this.pendingDoorSteps.set(doorId, (this.pendingDoorSteps.get(doorId) || 0) + normalizedDelta);
+  }
+
+  consumePendingDoorDelta(door) {
+    const doorId = door?.id;
+    if (!doorId || !this.pendingDoorSteps.has(doorId)) return 0;
+    const delta = this.pendingDoorSteps.get(doorId) || 0;
+    this.pendingDoorSteps.delete(doorId);
+    return delta;
   }
 
   shouldAdvanceAnimation(runtime, door) {
@@ -137,7 +153,7 @@ export class CarrotClockDoorSystem {
     const shouldAnimate = this.shouldAdvanceAnimation(runtime, door);
     if (shouldAnimate) advanceHandAnimation(door, runtime?.lastDt || 0);
 
-    const delta = consumeRisingInputs(door, this.switchState);
+    const delta = consumeRisingInputs(door, this.switchState) + this.consumePendingDoorDelta(door);
     if (delta !== 0) {
       startHandAnimation(door, delta, modulo);
       if (door.feedback !== false) runtime?.app?.audio?.playSfx?.('gimmick_switch');

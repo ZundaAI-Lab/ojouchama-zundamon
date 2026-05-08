@@ -4,6 +4,7 @@
  * 更新ルール: 風船ライドは横/上昇スクロールの設定差分もここで検証し、Runtime側へ不正なconfigを渡さない。
  * 更新ルール: ゴール種類の妥当性だけを検証し、サイズ定義はgoalDefsへ委譲する。
  * 更新ルール: 足場のactiveDurationは0以上の秒数だけを許可し、0はRuntime側で無制限として扱う。
+ * 更新ルール: 風足場は kind: 'wind' と windStyle の組み合わせだけを許可する。
  */
 import { STAGE_VIEW } from '../config/view.js';
 import { STAGE_ARRAY_FIELDS, STAGE_SCHEMA_KEYS } from '../data/stageSchema.js';
@@ -13,8 +14,14 @@ import { RESIDENT_DEFS } from '../data/residentDefs.js';
 import { NANO_RESCUE_EVENT_CONFIGS } from '../config/nanoRescueConfig.js';
 import { isKnownGoalVariant } from '../data/goalDefs.js';
 import { DOOR_OPEN_CONDITIONS, resolveDoorOpenCondition } from '../data/doorDefs.js';
+import { VINE_STYLE_ORDER } from '../config/vineStyleDefs.js';
+import { PLATFORM_STYLE_ORDER } from '../config/platformStyleDefs.js';
+import { WIND_STYLE_ORDER } from '../config/windStyleDefs.js';
 
 const PLATFORM_KIND_SET = new Set(Object.values(PLATFORM_KINDS));
+const VINE_STYLE_SET = new Set(VINE_STYLE_ORDER);
+const PLATFORM_STYLE_SET = new Set(PLATFORM_STYLE_ORDER);
+const WIND_STYLE_SET = new Set(WIND_STYLE_ORDER);
 const ITEM_KIND_SET = new Set(Object.keys(ITEM_DEFS));
 const RESIDENT_TYPE_SET = new Set(Object.keys(RESIDENT_DEFS));
 const REQUIRED_RECT_FIELDS = ['x', 'y', 'w', 'h'];
@@ -66,6 +73,15 @@ function checkUniqueIds(messages, values, path) {
 
 function collectDefinedSwitchIds(stage) {
   return new Set(stage.switchGimmicks.map(item => item.switchId).filter(Boolean));
+}
+
+function collectInvitationClockDoorIds(stage) {
+  const map = new Map();
+  for (const item of stage.items || []) {
+    if (item?.kind !== 'invitation' || !item.clockDoorId) continue;
+    map.set(item.clockDoorId, (map.get(item.clockDoorId) || 0) + 1);
+  }
+  return map;
 }
 
 function checkReinforcementResident(messages, resident, path) {
@@ -164,17 +180,18 @@ function checkDoor(messages, stage, door, path) {
   if (condition === DOOR_OPEN_CONDITIONS.BOW && door.bowRange != null && !isFiniteNumber(door.bowRange)) add(messages, 'error', 'bowRange は数値にしてください。', `${path}.bowRange`);
 }
 
-function checkCarrotClockDoor(messages, door, path, switchIds) {
+function checkCarrotClockDoor(messages, door, path, switchIds, invitationClockDoorIds = new Map()) {
   for (const key of ['initialTime', 'targetTime', 'hourHandTime', 'clockModulo', 'handAnimDuration', 'clockCenterYOffset']) {
     if (door[key] != null && !isFiniteNumber(door[key])) add(messages, 'error', `${key} は数値にしてください。`, `${path}.${key}`);
   }
   if (door.clockModulo != null && door.clockModulo < 2) add(messages, 'error', 'clockModulo は2以上にしてください。', `${path}.clockModulo`);
   if (door.openWhenMatched != null && typeof door.openWhenMatched !== 'boolean') add(messages, 'error', 'openWhenMatched はbooleanにしてください。', `${path}.openWhenMatched`);
-  if (!Array.isArray(door.clockInputs) || door.clockInputs.length === 0) {
-    add(messages, 'error', 'clockInputsを1件以上指定してください。', `${path}.clockInputs`);
+  const hasInvitationInput = invitationClockDoorIds.has(door.id);
+  if ((!Array.isArray(door.clockInputs) || door.clockInputs.length === 0) && !hasInvitationInput) {
+    add(messages, 'error', 'clockInputsを1件以上指定するか、対応する招待状のclockDoorIdを設定してください。', `${path}.clockInputs`);
     return;
   }
-  for (const [inputIndex, input] of door.clockInputs.entries()) {
+  for (const [inputIndex, input] of (door.clockInputs || []).entries()) {
     const inputPath = `${path}.clockInputs[${inputIndex}]`;
     if (!input || typeof input !== 'object') {
       add(messages, 'error', '時計入力はオブジェクトにしてください。', inputPath);
@@ -222,12 +239,35 @@ export function validateEditorStage(stage) {
         add(messages, 'error', 'platform.activeDuration は0以上の数値にしてください。', `${path}.activeDuration`);
       }
     }
+    if (platform.kind === PLATFORM_KINDS.VINE_PLATFORM && platform.vineStyle && !VINE_STYLE_SET.has(platform.vineStyle)) {
+      add(messages, 'error', `未定義の蔓足場スタイルです: ${platform.vineStyle}`, `${path}.vineStyle`);
+    }
+    if (platform.kind === PLATFORM_KINDS.NORMAL && platform.platformStyle && !PLATFORM_STYLE_SET.has(platform.platformStyle)) {
+      add(messages, 'error', `未定義の通常床スタイルです: ${platform.platformStyle}`, `${path}.platformStyle`);
+    }
+    if (platform.kind === PLATFORM_KINDS.WIND) {
+      if (!platform.windStyle) add(messages, 'error', '風足場は windStyle を指定してください。', `${path}.windStyle`);
+      else if (!WIND_STYLE_SET.has(platform.windStyle)) add(messages, 'error', `未定義の風足場スタイルです: ${platform.windStyle}`, `${path}.windStyle`);
+    }
     if (platform.active !== true && platform.active !== false) add(messages, 'error', 'platform.active はbooleanで明示してください。', `${path}.active`);
   });
 
   stage.items.forEach((item, index) => {
-    checkPoint(messages, stage, item, `items[${index}]`);
-    if (!ITEM_KIND_SET.has(item.kind)) add(messages, 'error', `未定義のアイテムkindです: ${item.kind}`, `items[${index}].kind`);
+    const path = `items[${index}]`;
+    checkPoint(messages, stage, item, path);
+    if (!ITEM_KIND_SET.has(item.kind)) add(messages, 'error', `未定義のアイテムkindです: ${item.kind}`, `${path}.kind`);
+    if (item.kind === 'invitation') {
+      if (!item.switchId && !item.clockDoorId) add(messages, 'error', '招待状には switchId または clockDoorId を指定してください。', `${path}.switchId`);
+      if (item.switchMode != null && !['latch', 'timed'].includes(item.switchMode)) {
+        add(messages, 'error', `未対応のswitchModeです: ${item.switchMode}`, `${path}.switchMode`);
+      }
+      if (item.switchDuration != null && (!isFiniteNumber(item.switchDuration) || item.switchDuration < 0)) {
+        add(messages, 'error', 'switchDuration は0以上の数値にしてください。', `${path}.switchDuration`);
+      }
+      if (item.clockStep != null && !isFiniteNumber(item.clockStep)) {
+        add(messages, 'error', 'clockStep は数値にしてください。', `${path}.clockStep`);
+      }
+    }
   });
 
   stage.residents.forEach((resident, index) => {
@@ -272,9 +312,10 @@ export function validateEditorStage(stage) {
   checkUniqueIds(messages, stage.specialEvents, 'specialEvents');
 
   const switchIds = collectDefinedSwitchIds(stage);
+  const invitationClockDoorIds = collectInvitationClockDoorIds(stage);
   for (const [index, door] of stage.doors.entries()) {
     const path = `doors[${index}]`;
-    if (door.kind === 'carrotClockDoor') checkCarrotClockDoor(messages, door, path, switchIds);
+    if (door.kind === 'carrotClockDoor') checkCarrotClockDoor(messages, door, path, switchIds, invitationClockDoorIds);
     else if (resolveDoorOpenCondition(door.openCondition) === DOOR_OPEN_CONDITIONS.SWITCH && door.switchId && !switchIds.has(door.switchId)) add(messages, 'error', `参照先switchIdがありません: ${door.switchId}`, `${path}.switchId`);
   }
   for (const [index, target] of stage.switchTargets.entries()) {
@@ -282,6 +323,14 @@ export function validateEditorStage(stage) {
   }
   for (const [index, platform] of stage.platforms.entries()) {
     if (platform.switchId && !switchIds.has(platform.switchId)) add(messages, 'error', `参照先switchIdがありません: ${platform.switchId}`, `platforms[${index}].switchId`);
+  }
+  for (const [index, item] of stage.items.entries()) {
+    if (item.switchId && !switchIds.has(item.switchId)) add(messages, 'error', `参照先switchIdがありません: ${item.switchId}`, `items[${index}].switchId`);
+    if (item.clockDoorId) {
+      const door = stage.doors.find(candidate => candidate.id === item.clockDoorId);
+      if (!door) add(messages, 'error', `参照先clockDoorIdがありません: ${item.clockDoorId}`, `items[${index}].clockDoorId`);
+      else if (door.kind !== 'carrotClockDoor') add(messages, 'error', `clockDoorIdはにんじん時計扉を参照してください: ${item.clockDoorId}`, `items[${index}].clockDoorId`);
+    }
   }
 
   const balloonRideIds = new Set(stage.balloonRides.map(ride => ride.id).filter(Boolean));

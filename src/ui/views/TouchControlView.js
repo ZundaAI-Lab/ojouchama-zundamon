@@ -1,6 +1,6 @@
 /**
  * 責務: タッチ操作設定専用画面のDOMを生成する。
- * 更新ルール: 値の正規化・保存は TouchControlScene に残し、ここでは初期HTMLだけを担当する。
+ * 更新ルール: 値の正規化・保存は OptionSettingsPageController / OptionDraftStore に残し、ここでは初期HTMLだけを担当する。
  * 更新ルール: リサイズ用の画面種別は wrapper class だけでCSSへ渡し、寸法計算はCSSへ集約する。
  */
 export class TouchControlView {

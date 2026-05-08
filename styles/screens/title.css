@@ -94,7 +94,8 @@
   flex: 1.35 1 0;
 }
 
-.title-card .danger-btn {
+.title-actions-panel .danger-btn,
+.title-actions .danger-btn {
   background: linear-gradient(180deg, #f8e2e8, #efccd6);
 }
 

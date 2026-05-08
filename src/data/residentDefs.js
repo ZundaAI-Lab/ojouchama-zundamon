@@ -28,7 +28,7 @@ export const RESIDENT_DEFS = {
     behaviorId: 'ground_hop_patrol',
     behaviorParams: {
       move: { speedScale: 0.92 },
-      hop: { interval: 1.15, power: 135, towardTarget: false },
+      hop: { interval: 2.25, power: 220, towardTarget: false },
     },
   },
 

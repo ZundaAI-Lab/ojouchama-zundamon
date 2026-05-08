@@ -183,7 +183,7 @@ const stage = {
     {
       "x": 2072,
       "y": 304,
-      "w": 56,
+      "w": 264,
       "h": 56,
       "kind": "normal",
       "active": true
@@ -197,11 +197,11 @@ const stage = {
       "active": true
     },
     {
+      "kind": "vinePlatform",
       "x": 2296,
       "y": 184,
       "w": 40,
-      "h": 176,
-      "kind": "normal",
+      "h": 120,
       "active": true
     },
     {
@@ -231,14 +231,6 @@ const stage = {
       "active": true,
       "slopeDir": -1,
       "tilt": 0.35
-    },
-    {
-      "x": 2168,
-      "y": 304,
-      "w": 128,
-      "h": 56,
-      "kind": "normal",
-      "active": true
     }
   ],
   "residents": [
@@ -327,7 +319,7 @@ const stage = {
     {
       "x": 2224,
       "y": 272,
-      "kind": "largeBeanCoin"
+      "kind": "dreamDrop"
     },
     {
       "x": 2272,

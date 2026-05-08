@@ -69,7 +69,8 @@ const stage = {
       y: 264,
       w: 104,
       h: 16,
-      kind: "dreamWind"
+      kind: "wind",
+      windStyle: "dream"
     },
     {
       x: 1432,

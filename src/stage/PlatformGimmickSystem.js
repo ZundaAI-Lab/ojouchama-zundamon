@@ -30,7 +30,7 @@ const SLEEP_CLOUD_SINK_SPEED = 34;
 const SLEEP_CLOUD_RETURN_SPEED = 30;
 
 const CRUMBLE_BREAK_SECONDS = 0.9;
-const CRUMBLE_RESPAWN_SECONDS = 1.25;
+const CRUMBLE_REPAIR_IDLE_SECONDS = 2.0;
 
 const SPOON_SLIDE_ACCEL = 300;
 const SPOON_SLIDE_MAX_SPEED = 170;
@@ -40,10 +40,10 @@ const TEACUP_SPIN_TILT_MAX = 0.18;
 const TEACUP_SPIN_TILT_DEADZONE = 0.16;
 const TEACUP_SPIN_TILT_SPEED = 3.6;
 
-const DREAM_WIND_CARRY_SECONDS = 0.58;
-const DREAM_WIND_LIFT_SPEED = -168;
-const DREAM_WIND_PUSH_ACCEL = 1520;
-const DREAM_WIND_PUSH_MAX_SPEED = 245;
+const WIND_CARRY_SECONDS = 0.58;
+const WIND_LIFT_SPEED = -168;
+const WIND_PUSH_ACCEL = 1520;
+const WIND_PUSH_MAX_SPEED = 245;
 
 const RIBBON_BRIDGE_LIFE_SECONDS = 5.2;
 const RIBBON_BRIDGE_GROW_SECONDS = 0.38;
@@ -137,37 +137,62 @@ function getSpoonDirection(platform) {
   return Math.sign(platform.slopeDir || platform.spoonSlopeDir || 1) || 1;
 }
 
-function refreshDreamWindCarry(runtime, platform) {
-  const player = runtime.player;
-  const dir = Math.sign(platform.windDir || platform.dir || player.facing || 1) || 1;
-  player.dreamWindCarryTimer = DREAM_WIND_CARRY_SECONDS;
-  player.dreamWindCarryDuration = DREAM_WIND_CARRY_SECONDS;
-  player.dreamWindCarryDir = dir;
+function isWindPlatform(platform) {
+  return platform?.kind === 'wind';
 }
 
-function applyDreamWindCarry(runtime, dt) {
+function getWindSparkleColor(platform) {
+  return platform?.windStyle === 'ribbon' ? '#ffd1e8' : '#d7c7ff';
+}
+
+function refreshWindCarry(runtime, platform) {
   const player = runtime.player;
-  const timer = player.dreamWindCarryTimer ?? 0;
+  const dir = Math.sign(platform.windDir || platform.dir || player.facing || 1) || 1;
+  player.windCarryTimer = WIND_CARRY_SECONDS;
+  player.windCarryDuration = WIND_CARRY_SECONDS;
+  player.windCarryDir = dir;
+}
+
+function applyWindCarry(runtime, dt) {
+  const player = runtime.player;
+  const timer = player.windCarryTimer ?? 0;
   if (timer <= 0) return;
 
-  const duration = player.dreamWindCarryDuration || DREAM_WIND_CARRY_SECONDS;
+  const duration = player.windCarryDuration || WIND_CARRY_SECONDS;
   const strength = clamp(timer / duration, 0, 1);
   const eased = 0.35 + strength * 0.65;
-  const dir = Math.sign(player.dreamWindCarryDir || player.facing || 1) || 1;
+  const dir = Math.sign(player.windCarryDir || player.facing || 1) || 1;
 
-  player.vy = Math.min(player.vy, DREAM_WIND_LIFT_SPEED * eased);
+  player.vy = Math.min(player.vy, WIND_LIFT_SPEED * eased);
   player.vx = clamp(
-    player.vx + dir * DREAM_WIND_PUSH_ACCEL * eased * dt,
-    -DREAM_WIND_PUSH_MAX_SPEED,
-    DREAM_WIND_PUSH_MAX_SPEED,
+    player.vx + dir * WIND_PUSH_ACCEL * eased * dt,
+    -WIND_PUSH_MAX_SPEED,
+    WIND_PUSH_MAX_SPEED,
   );
-  player.dreamWindCarryTimer = Math.max(0, timer - dt);
+  player.windCarryTimer = Math.max(0, timer - dt);
 }
 
 function deactivatePlatformUnderPlayer(runtime, platform) {
   if (runtime.player.groundPlatform !== platform) return;
   runtime.player.groundPlatform = null;
   runtime.player.onGround = false;
+}
+
+function isPlayerTouchingPlatformBounds(runtime, platform) {
+  const player = runtime.player;
+  if (!player) return false;
+  return intersects(
+    { x: player.x, y: player.y, w: player.w, h: player.h },
+    { x: platform.x, y: platform.y, w: platform.w, h: platform.h },
+  );
+}
+
+function repairCrumblePlatform(runtime, platform) {
+  platform.active = true;
+  platform.crumbleTimer = 1;
+  platform.crumbleIdleTimer = 0;
+  platform.crumbleRespawnTimer = CRUMBLE_REPAIR_IDLE_SECONDS;
+  runtime.spawnSparkles(platform.x + platform.w / 2, platform.y + 4, '#f6dc9a', 10);
 }
 
 export function activateRibbonBridge(platform, fallbackDuration = RIBBON_BRIDGE_LIFE_SECONDS) {
@@ -276,13 +301,17 @@ export class PlatformGimmickSystem {
       }
 
       if (p.kind === 'crumble' && p.active === false) {
-        p.crumbleRespawnTimer = (p.crumbleRespawnTimer ?? CRUMBLE_RESPAWN_SECONDS) - dt;
-        if (p.crumbleRespawnTimer <= 0) {
-          p.active = true;
-          p.crumbleTimer = 1;
-          p.crumbleRespawnTimer = CRUMBLE_RESPAWN_SECONDS;
-          runtime.spawnSparkles(p.x + p.w / 2, p.y + 4, '#f6dc9a', 10);
+        if (isPlayerTouchingPlatformBounds(runtime, p)) {
+          p.crumbleRespawnTimer = CRUMBLE_REPAIR_IDLE_SECONDS;
+        } else {
+          p.crumbleRespawnTimer = (p.crumbleRespawnTimer ?? CRUMBLE_REPAIR_IDLE_SECONDS) - dt;
+          if (p.crumbleRespawnTimer <= 0) repairCrumblePlatform(runtime, p);
         }
+      }
+
+      if (p.kind === 'crumble' && p.active !== false && (p.crumbleTimer ?? 1) < 1 && !getPlayerGround(runtime, p)) {
+        p.crumbleIdleTimer = (p.crumbleIdleTimer ?? 0) + dt;
+        if (p.crumbleIdleTimer >= CRUMBLE_REPAIR_IDLE_SECONDS) repairCrumblePlatform(runtime, p);
       }
 
       if (p.kind === 'teacupSpin') {
@@ -315,8 +344,8 @@ export class PlatformGimmickSystem {
   static resolvePlayerGround(runtime, dt = 1 / 60) {
     const player = runtime.player;
     const p = player.groundPlatform;
-    if (p?.kind === 'dreamWind' || p?.kind === 'ribbonWind') refreshDreamWindCarry(runtime, p);
-    applyDreamWindCarry(runtime, dt);
+    if (isWindPlatform(p)) refreshWindCarry(runtime, p);
+    applyWindCarry(runtime, dt);
 
     if (!p) return;
     if (p.kind === 'jelly' && player.jellyBounceLock <= 0 && player.prevY + player.h <= p.y + 8) {
@@ -348,10 +377,10 @@ export class PlatformGimmickSystem {
         }
       }
     }
-    if (p.kind === 'dreamWind' || p.kind === 'ribbonWind') {
+    if (isWindPlatform(p)) {
       if (!p.windFxCooldown || p.windFxCooldown <= runtime.elapsed) {
         p.windFxCooldown = runtime.elapsed + 0.15;
-        runtime.spawnSparkles(player.x + player.w / 2, player.y + 10, p.kind === 'ribbonWind' ? '#ffd1e8' : '#d7c7ff', 5);
+        runtime.spawnSparkles(player.x + player.w / 2, player.y + 10, getWindSparkleColor(p), 5);
       }
     }
     if (p.kind === 'waitFlower') {
@@ -366,10 +395,11 @@ export class PlatformGimmickSystem {
       }
     }
     if (p.kind === 'crumble') {
+      p.crumbleIdleTimer = 0;
       p.crumbleTimer = Math.max(0, (p.crumbleTimer ?? 1.0) - dt / CRUMBLE_BREAK_SECONDS);
       if (p.crumbleTimer <= 0) {
         p.active = false;
-        p.crumbleRespawnTimer = CRUMBLE_RESPAWN_SECONDS;
+        p.crumbleRespawnTimer = CRUMBLE_REPAIR_IDLE_SECONDS;
         player.groundPlatform = null;
         player.onGround = false;
         runtime.spawnSparkles(p.x + p.w / 2, p.y + 4, '#f3c174', 16);

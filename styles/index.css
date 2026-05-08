@@ -9,7 +9,10 @@
 @import './components/menu-common.css';
 @import './screens/opening.css';
 @import './screens/garden.css';
+@import './screens/stage-select.css';
+@import './screens/garden-board.css';
 @import './screens/options.css';
+@import './screens/opening-compact.css';
 @import './components/dialogue.css';
 @import './components/tutorial-dialog.css';
 @import './components/confirm-dialog.css';

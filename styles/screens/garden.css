@@ -152,6 +152,19 @@
   color: #6b6f63;
 }
 
+.stage-desc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.stage-desc-row > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .stage-select em,
 .upgrade-select em {
   display: block;
@@ -204,4 +217,22 @@
 .garden-notice.show {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+}
+
+.stage-dream-drops {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 132px;
+  min-height: 30px;
+  flex: 0 0 132px;
+}
+
+.garden-screen .stage-card .stage-select .stage-dream-drops img {
+  width: 28px;
+  height: 30px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.88));
 }

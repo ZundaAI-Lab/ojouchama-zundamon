@@ -1,6 +1,7 @@
 /**
  * 責務: うさぎのリボン庭園：月明かりの招待状 のステージデータを定義する。
  * 更新ルール: うさぎのリボン庭園を正式な第3ワールドとして扱い、全エリアで同一形式のStageFactoryが読み取れるデータを維持する。
+ * 更新ルール: このエリアは招待状収集でにんじん時計扉を進める構成とし、items[].clockDoorId が時計扉進行の正本を担う。
  */
 const stage = {
   "id": "ribbon_garden_area_3",
@@ -19,7 +20,38 @@ const stage = {
     "y": 232
   },
   "boss": null,
-  "introDialogue": [],
+  "introDialogue": [
+    {
+      "portrait": "npc_rabbit_child",
+      "speaker": "ミミル",
+      "text": "お嬢ちゃま、月の広場に逃げた招待状さんたちが、にんじん時計扉の前でくるくる回っていますの。"
+    },
+    {
+      "portrait": "npc_rabbit_child",
+      "speaker": "ミミル",
+      "text": "あの扉は、夜の12時ぴったりになると開くのですけれど、いまは2時で止まったままですの。"
+    },
+    {
+      "portrait": "portrait_smile",
+      "speaker": "お嬢ちゃまずんだもん",
+      "text": "招待状さんをひとつ迎えるたびに、針がひと目盛りずつ進むのね。"
+    },
+    {
+      "portrait": "npc_rabbit_child",
+      "speaker": "ミミル",
+      "text": "はい。10枚そろうと、0時ジャストになって扉が開きますの。その先に、ほどけたリボンの影が集まっていますわ。"
+    },
+    {
+      "portrait": "portrait_nano_laugh",
+      "speaker": "なのちゃん",
+      "text": "なのだ！ 招待状さんたちを、みんなでお茶会へ連れていくのだ！"
+    },
+    {
+      "portrait": "portrait_determined",
+      "speaker": "お嬢ちゃまずんだもん",
+      "text": "うんなの。だれも置いていかないように、月明かりの道をやさしく集めて進むの。"
+    }
+  ],
   "bossDialogue": [],
   "bossDefeatDialogue": [],
   "clearDialogue": [],
@@ -27,12 +59,17 @@ const stage = {
     {
       "portrait": "npc_rabbit_child",
       "speaker": "ミミル",
-      "text": "招待状さん、もう怖くないみたいですの。けれど奥で、ほどけたリボンの影が震えていますわ……。"
+      "text": "12時になりましたの！ 招待状さんたちも、ちゃんと列を作って戻ってきてくれましたの。"
+    },
+    {
+      "portrait": "npc_rabbit_child",
+      "speaker": "ミミル",
+      "text": "けれど奥で、ほどけたリボンの影がまだ震えていますわ……あの先に、月を結ぶお方がいらっしゃるはずですの。"
     },
     {
       "portrait": "portrait_determined",
       "speaker": "お嬢ちゃまずんだもん",
-      "text": "影さんにも、ちゃんと声をかけに行くの。"
+      "text": "うんなの。影さんにも、急がなくて大丈夫だよって伝えに行くの。"
     }
   ],
   "platforms": [
@@ -47,7 +84,8 @@ const stage = {
       "y": 288,
       "w": 120,
       "h": 16,
-      "kind": "ribbonWind",
+      "kind": "wind",
+      "windStyle": "ribbon",
       "windDir": 1
     },
     {
@@ -98,7 +136,8 @@ const stage = {
       "y": 256,
       "w": 112,
       "h": 16,
-      "kind": "ribbonWind",
+      "kind": "wind",
+      "windStyle": "ribbon",
       "windDir": 1
     },
     {
@@ -149,9 +188,23 @@ const stage = {
   ],
   "items": [
     {
+      "x": 240,
+      "y": 280,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
       "x": 392,
       "y": 248,
       "kind": "coin"
+    },
+    {
+      "x": 424,
+      "y": 248,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
     },
     {
       "x": 592,
@@ -159,9 +212,30 @@ const stage = {
       "kind": "scone"
     },
     {
+      "x": 608,
+      "y": 216,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
+      "x": 824,
+      "y": 280,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
       "x": 1048,
       "y": 256,
       "kind": "coin"
+    },
+    {
+      "x": 1080,
+      "y": 256,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
     },
     {
       "x": 1240,
@@ -169,9 +243,30 @@ const stage = {
       "kind": "teacup"
     },
     {
+      "x": 1264,
+      "y": 232,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
+      "x": 1560,
+      "y": 280,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
       "x": 1816,
       "y": 240,
       "kind": "coin"
+    },
+    {
+      "x": 1848,
+      "y": 240,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
     },
     {
       "x": 2008,
@@ -179,9 +274,23 @@ const stage = {
       "kind": "coin"
     },
     {
+      "x": 2040,
+      "y": 216,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
+    },
+    {
       "x": 2200,
       "y": 256,
       "kind": "coin"
+    },
+    {
+      "x": 2224,
+      "y": 256,
+      "kind": "invitation",
+      "clockDoorId": "moon_clock_door",
+      "clockStep": 1
     },
     {
       "x": 2480,
@@ -225,6 +334,25 @@ const stage = {
       "y": 152,
       "r": 7,
       "color": "rgba(255,255,255,0.24)"
+    }
+  ],
+  "doors": [
+    {
+      "id": "moon_clock_door",
+      "kind": "carrotClockDoor",
+      "groupId": "",
+      "x": 2360,
+      "y": 216,
+      "w": 64,
+      "h": 104,
+      "imageKey": "gimmick_carrot_clock_gate",
+      "initialTime": 2,
+      "targetTime": 0,
+      "hourHandTime": 2,
+      "clockModulo": 12,
+      "openWhenMatched": true,
+      "handAnimDuration": 0.34,
+      "clockInputs": []
     }
   ],
   "route": {

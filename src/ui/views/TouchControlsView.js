@@ -200,17 +200,17 @@ export class TouchControlsView {
       btn.setPointerCapture?.(e.pointerId);
       actionList.forEach(action => this.setTouchVirtual(action, true));
     };
-    const up = e => {
+    const release = (e, shouldReleaseCapture = true) => {
       e.preventDefault();
       if (!active) return;
       active = false;
       actionList.forEach(action => this.setTouchVirtual(action, false));
-      btn.releasePointerCapture?.(e.pointerId);
+      if (shouldReleaseCapture) btn.releasePointerCapture?.(e.pointerId);
     };
     btn.addEventListener('pointerdown', down);
-    btn.addEventListener('pointerup', up);
-    btn.addEventListener('pointercancel', up);
-    btn.addEventListener('lostpointercapture', up);
+    btn.addEventListener('pointerup', e => release(e));
+    btn.addEventListener('pointercancel', e => release(e));
+    btn.addEventListener('lostpointercapture', e => release(e, false));
     return btn;
   }
 
@@ -224,9 +224,9 @@ export class TouchControlsView {
     let startX = 0;
     let startY = 0;
 
-    const clearCapture = e => {
+    const clearCapture = (e, shouldReleaseCapture = true) => {
       if (pointerId === null) return;
-      btn.releasePointerCapture?.(e.pointerId);
+      if (shouldReleaseCapture) btn.releasePointerCapture?.(e.pointerId);
       pointerId = null;
     };
 
@@ -252,7 +252,10 @@ export class TouchControlsView {
       clearCapture(e);
     };
     btn.addEventListener('pointercancel', cancel);
-    btn.addEventListener('lostpointercapture', cancel);
+    btn.addEventListener('lostpointercapture', e => {
+      e.preventDefault();
+      clearCapture(e, false);
+    });
     return btn;
   }
 

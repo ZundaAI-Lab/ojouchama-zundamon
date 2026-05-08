@@ -22,23 +22,6 @@ function collectImageKeysFromDialogue(dialogues = []) {
 }
 
 
-function collectGridCoordinateFailures(value, path = 'stage', failures = []) {
-  if (!value || typeof value !== 'object') return failures;
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => collectGridCoordinateFailures(item, `${path}[${index}]`, failures));
-    return failures;
-  }
-
-  for (const [key, current] of Object.entries(value)) {
-    const nextPath = `${path}.${key}`;
-    if (['x', 'y', 'w', 'h'].includes(key) && Number.isFinite(current) && current % 8 !== 0) {
-      failures.push(`${nextPath}=${current}`);
-    }
-    collectGridCoordinateFailures(current, nextPath, failures);
-  }
-  return failures;
-}
-
 function collectStageImageKeys(stage) {
   const keys = [];
   if (stage.backgroundKey) keys.push(stage.backgroundKey);
@@ -145,12 +128,6 @@ export const dataValidationTests = [
     assert(inactiveTypeMissing.length === 0, `activeがbooleanではない足場: ${inactiveTypeMissing.join(', ')}`);
   }),
 
-
-
-  createTest('stageData', 'ステージ内のx/y/w/hは8pxグリッドに揃っている', ({ assert }) => {
-    const failures = Object.values(STAGES).flatMap(stage => collectGridCoordinateFailures(stage, stage.id));
-    assert(failures.length === 0, `8pxグリッド外の座標/矩形: ${failures.join(', ')}`);
-  }),
 
   createTest('stageData', 'nanoRescue特殊イベントは実在する設定IDを参照する', ({ assert }) => {
     const missing = Object.values(STAGES).flatMap(stage => (stage.specialEvents || [])

@@ -2,6 +2,7 @@
  * 責務: ステージ定義からRuntimeで使うActor、カメラ、描画系を生成する。
  * 更新ルール: 進行判定や入力処理はRuntime/Scene側に置く。なのちゃんは加入済み判定後に専用Actorとして生成する。
  * 更新ルール: 縦長ステージ開始時も初期スポーンが画面内に入るよう、生成直後のカメラ初期位置だけはここで同期する。
+ * 更新ルール: 夢のしずく取得済み表示はSaveSystemのdreamDropsを参照してActor初期状態へ注入し、取得保存はClearServiceへ任せる。
  */
 import { Camera } from '../core/Camera.js';
 import { GAME_VIEW } from '../config/view.js';
@@ -35,6 +36,10 @@ export class StageFactory {
     camera.x = clamp(player.x + player.w / 2 - GAME_VIEW.WIDTH / 2, 0, Math.max(0, stage.width - GAME_VIEW.WIDTH));
     camera.y = clamp(player.y + player.h / 2 - GAME_VIEW.HEIGHT / 2, 0, Math.max(0, stage.height - GAME_VIEW.HEIGHT));
 
+    const dreamDropAcquired = !!saveData.dreamDrops?.[stage.id];
+    const goal = new Goal(stage.goal);
+    goal.dreamDropAcquired = dreamDropAcquired && stage.areaRole === 'boss';
+
     return {
       camera,
       physics,
@@ -42,8 +47,12 @@ export class StageFactory {
       player,
       nano,
       residents: ResidentFactory.createAll(stage.residents || [], difficulty.residentSpeed, difficulty.residentHpBonus),
-      items: (stage.items || []).map(item => new Item(item)),
-      goal: new Goal(stage.goal),
+      items: (stage.items || []).map(item => new Item({
+        ...item,
+        acquired: item.kind === 'dreamDrop' && dreamDropAcquired,
+        collectDisabled: item.kind === 'dreamDrop' && dreamDropAcquired,
+      })),
+      goal,
       boss: BossFactory.create(stage.boss, difficulty.damageScale),
       projectiles: [],
     };

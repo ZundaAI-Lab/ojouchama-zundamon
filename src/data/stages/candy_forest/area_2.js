@@ -288,6 +288,11 @@ const stage = {
       "x": 2240,
       "y": 240,
       "kind": "coin"
+    },
+    {
+      "x": 2640,
+      "y": 304,
+      "kind": "dreamDrop"
     }
   ],
   "decorations": [

@@ -3,6 +3,7 @@
  * 更新ルール: Sceneや描画に依存する検証は避け、進行サービスへ渡す最小runtimeだけを使う。
  */
 import { createTest } from '../TestRunner.js';
+import { Camera } from '../../core/Camera.js';
 import { Item } from '../../actors/item/Item.js';
 import { ItemCollectionService } from '../../stage/ItemCollectionService.js';
 import { RewardCoinDropService } from '../../stage/RewardCoinDropService.js';
@@ -14,10 +15,13 @@ import { NANO_CONFIG, NANO_STATES } from '../../config/nanoConfig.js';
 import { StageResultCalculator } from '../../stage/StageResultCalculator.js';
 import { SwitchGimmickSystem } from '../../stage/SwitchGimmickSystem.js';
 import { PlatformGimmickSystem } from '../../stage/PlatformGimmickSystem.js';
+import { buildPlatformCollisionShapes } from '../../stage/PlatformCollisionShapes.js';
+import { isNormalRespawnPlatform } from '../../stage/SafeRespawnPlatform.js';
 import { FallRespawnService } from '../../stage/FallRespawnService.js';
 import { StageCheckpointService } from '../../stage/StageCheckpointService.js';
 import { updateStageRuntimeFlow } from '../../stage/runtime/StageUpdateFlow.js';
 import { clampPlayerToHorizontalScreen } from '../../stage/StagePlayerScreenBoundary.js';
+import { BossCameraController, BOSS_BATTLE_CAMERA_ZOOM } from '../../stage/BossCameraController.js';
 
 function createRuntimeFlowMock(overrides = {}) {
   return {
@@ -101,6 +105,100 @@ function createNanoSwapRuntime(overrides = {}) {
 }
 
 export const stageTests = [
+
+
+  createTest('platform', '蔓の足場は通常足場と同じ矩形判定と復帰候補として扱う', ({ assert, equal }) => {
+    const platform = { x: 32, y: 96, w: 96, h: 48, kind: 'vinePlatform', active: true };
+    const shapes = buildPlatformCollisionShapes([platform]);
+    equal(shapes.length, 1);
+    assert(shapes[0] === platform, '蔓の足場は追加形状に分割せず矩形のまま扱います');
+    assert(isNormalRespawnPlatform(platform), '蔓の足場は通常足場相当の復帰候補です');
+  }),
+
+
+  createTest('BossCameraController', 'ボス戦前後のズームとスクロール固定を1秒遷移で切り替える', ({ assert, equal }) => {
+    const scrollController = {
+      active: false,
+      beginArgs: null,
+      endTarget: null,
+      begin(args) {
+        this.active = true;
+        this.beginArgs = args;
+      },
+      endFollow(target) {
+        this.active = false;
+        this.endTarget = target;
+      },
+      reset() {
+        this.active = false;
+      },
+    };
+    const player = { id: 'player' };
+    const camera = {
+      x: 120,
+      y: 24,
+      zoom: 1,
+      setZoom(zoom) { this.zoom = zoom; },
+      follow(target) { this.target = target; },
+    };
+    const runtime = {
+      camera,
+      player,
+      stage: { width: 960, height: 360 },
+    };
+    const controller = new BossCameraController({ scrollController });
+
+    controller.startBattleIntro(runtime);
+    equal(scrollController.active, true);
+    equal(scrollController.beginArgs.startX, 120);
+    equal(scrollController.beginArgs.startY, 24);
+    equal(controller.update(runtime, 0.5), false);
+    assert(camera.zoom < 1 && camera.zoom > BOSS_BATTLE_CAMERA_ZOOM, 'ズームアウト途中の倍率になる');
+    equal(controller.update(runtime, 0.5), true);
+    equal(camera.zoom, BOSS_BATTLE_CAMERA_ZOOM);
+    equal(controller.phase, 'battle');
+    equal(scrollController.active, true);
+
+    controller.startRestore(runtime);
+    equal(controller.update(runtime, 1), true);
+    equal(camera.zoom, 1);
+    equal(controller.phase, 'idle');
+    equal(scrollController.active, false);
+    equal(scrollController.endTarget, player);
+  }),
+
+
+
+  createTest('Camera', 'ズームアウト中は実効表示範囲でワールド境界へ収める', ({ assert }) => {
+    const camera = new Camera();
+    camera.setWorldSize(960, 360);
+    camera.x = 0;
+    camera.y = 0;
+
+    camera.setZoom(BOSS_BATTLE_CAMERA_ZOOM);
+    const rect = camera.getVisibleRect();
+
+    assert(rect.width > 480, 'ズームアウトで表示幅が広がる');
+    assert(rect.height > 270, 'ズームアウトで表示高が広がる');
+    assert(rect.left >= -0.0001, '左端がワールド外へはみ出さない');
+    assert(rect.top >= -0.0001, '上端がワールド外へはみ出さない');
+  }),
+
+  createTest('StagePlayerScreenBoundary', 'ズームアウト中は広がった表示範囲まで横移動を許可する', ({ assert, equal }) => {
+    const camera = new Camera();
+    camera.setWorldSize(960, 360);
+    camera.x = 120;
+    camera.y = 45;
+    camera.setZoom(BOSS_BATTLE_CAMERA_ZOOM);
+    const player = { x: 600, y: 0, w: 28, h: 40, drawW: 28, vx: 3 };
+    const runtime = { stage: { width: 960 }, camera, player };
+
+    const clamped = clampPlayerToHorizontalScreen(runtime);
+
+    equal(clamped, false);
+    equal(player.x, 600);
+    assert(player.x > camera.x + 480 - player.w, 'ズーム前の右端より外側へ移動できる');
+  }),
 
   createTest('StageUpdateFlow', '会話・チュートリアル・ポーズ中はクリアタイムを進めない', ({ equal }) => {
     const dialogueRuntime = createRuntimeFlowMock({ dialogue: { active: true, next() {} } });

@@ -4,10 +4,12 @@
  * 更新ルール: クリア済みステージの会話スキップ時も、出現・撃破後演出・報酬生成・待機の状態遷移は維持して会話開始だけを省略する。
  * 更新ルール: ボス戦BGMの選択はBGM定義の解決関数に委譲し、このControllerでは戦闘状態の切替だけを行う。
  * 更新ルール: ボス登場時はRuntimeへステージBGMフェードアウトだけ通知し、実際の音量制御はAudioSystemへ委譲する。
+ * 更新ルール: ボス戦前後のカメラ演出はBossCameraControllerへ委譲し、このControllerでは開始・完了の状態遷移だけを管理する。
  */
 import { GAME_VIEW } from '../config/view.js';
 import { RewardCoinDropService } from './RewardCoinDropService.js';
 import { resolveBossBgmId, resolveStageBgmId } from '../data/audio/bgmTrackDefs.js';
+import { BOSS_BATTLE_CAMERA_DURATION } from './BossCameraController.js';
 
 const BOSS_APPEAR_DURATION = 1.15;
 const BOSS_PURIFY_DURATION = 1.3;
@@ -61,6 +63,7 @@ export class BossEncounterController {
       runtime.bossRewardWaitTimer = 0;
       runtime.bossRewardDropped = false;
       runtime.bossBattleRespawnPoint = null;
+      runtime.bossCameraController?.reset?.(runtime, { restoreFollow: true });
       return;
     }
 
@@ -84,6 +87,8 @@ export class BossEncounterController {
     runtime.boss.appearProgress = resumeBattle ? 1 : 0;
     runtime.boss.purifyProgress = 0;
     runtime.boss.purifying = false;
+    if (resumeBattle) runtime.bossCameraController?.applyBattleState?.(runtime);
+    else runtime.bossCameraController?.reset?.(runtime, { restoreFollow: true });
   }
 
   static shouldShowGauge(runtime) {
@@ -182,6 +187,13 @@ export class BossEncounterController {
       return true;
     }
 
+    if (runtime.bossEncounterState === 'battleCameraZoomOut') {
+      this.settlePlayerForEvent(runtime, dt);
+      const completed = runtime.bossCameraController?.update?.(runtime, dt) ?? true;
+      if (completed) this.startBattle(runtime);
+      return true;
+    }
+
     if (runtime.bossEncounterState === 'purifying') {
       runtime.app.input.clearGameplay();
       runtime.bossPurifyTimer += dt;
@@ -203,8 +215,16 @@ export class BossEncounterController {
       runtime.bossRewardWaitTimer += dt;
       this.updateBlockingEventVisuals(runtime, dt, { rewardDrops: true });
       if (runtime.bossRewardWaitTimer >= BOSS_REWARD_WAIT_DURATION) {
-        this.startDefeatDialogue(runtime);
+        this.startDefeatCameraRestore(runtime);
       }
+      return true;
+    }
+
+    if (runtime.bossEncounterState === 'defeatCameraRestore') {
+      runtime.app.input.clearGameplay();
+      this.updateBlockingEventVisuals(runtime, dt, { rewardDrops: true });
+      const completed = runtime.bossCameraController?.update?.(runtime, dt) ?? true;
+      if (completed) this.startDefeatDialogue(runtime);
       return true;
     }
 
@@ -256,13 +276,22 @@ export class BossEncounterController {
     runtime.app.input.clearGameplay();
 
     if (runtime.skipDialogueEvents) {
-      this.startBattle(runtime);
+      this.startBattleCameraZoomOut(runtime);
       return;
     }
 
     runtime.dialogue.start(this.getDialogue(runtime), () => {
-      BossEncounterController.startBattle(runtime);
+      BossEncounterController.startBattleCameraZoomOut(runtime);
     }, { mode: 'bossIntro' });
+  }
+
+  static startBattleCameraZoomOut(runtime) {
+    runtime.bossEncounterState = 'battleCameraZoomOut';
+    runtime.boss.visible = true;
+    runtime.boss.invulnerable = true;
+    runtime.boss.appearProgress = 1;
+    runtime.app.input.clearGameplay();
+    runtime.bossCameraController?.startBattleIntro?.(runtime, { duration: BOSS_BATTLE_CAMERA_DURATION });
   }
 
   static startBattle(runtime) {
@@ -321,6 +350,15 @@ export class BossEncounterController {
       runtime.app.audio.playSfx('coin');
       runtime.hud.showBanner('ごほうびの豆コインがこぼれたの！');
     }
+  }
+
+  static startDefeatCameraRestore(runtime) {
+    runtime.bossEncounterState = 'defeatCameraRestore';
+    runtime.boss.visible = false;
+    runtime.boss.purifying = false;
+    runtime.boss.purifyProgress = 1;
+    runtime.app.input.clearGameplay();
+    runtime.bossCameraController?.startRestore?.(runtime, { duration: BOSS_BATTLE_CAMERA_DURATION });
   }
 
   static startDefeatDialogue(runtime) {

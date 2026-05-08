@@ -92,6 +92,7 @@ export const ASSET_MANIFEST = {
 
     icon_coin: './assets/images/icon_coin.png',
     icon_scone: './assets/images/icon_scone.png',
+    icon_invitation: './assets/images/icon_invitation.png',
     icon_dream_drop: './assets/images/icon_dream_drop.png',
     icon_teacup: './assets/images/icon_teacup.png',
     stage_checkpoint_flag: './assets/images/stage_checkpoint_flag.png',

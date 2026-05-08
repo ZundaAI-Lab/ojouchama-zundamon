@@ -253,7 +253,7 @@ const stage = {
     {
       "x": 2256,
       "y": 64,
-      "kind": "largeBeanCoin",
+      "kind": "dreamDrop",
       "groupId": ""
     },
     {

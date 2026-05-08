@@ -1,6 +1,6 @@
 /**
- * 責務: bgmTrackDefsのBGMトラックイベントをWebAudioへスケジュールしてループ再生する。
- * 更新ルール: 曲データの内容は data/audio/bgm/ に置き、このクラスは発音・ループ・停止処理だけを扱う。
+ * 責務: BGMトラックイベントを純粋なPCMへ段階レンダーし、完成したAudioBufferだけをWebAudio標準のloop再生で鳴らす。
+ * 更新ルール: BGM再生中に音符ごとのOscillator/Gain/Filter/Noiseノードを生成しない。曲データは data/audio/bgm/ に置き、このクラスはPCM化・キャッシュ・再生/停止だけを扱う。
  */
 const SECTION_ORDER = Object.freeze(['intro', 'A', 'APrime', 'B', 'C']);
 const LOOP_ORDER = Object.freeze(['A', 'APrime', 'B', 'C']);
@@ -16,8 +16,18 @@ const DEFAULT_INSTRUMENTS = Object.freeze({
   hat: Object.freeze({ kind: 'hat' }),
 });
 
-const SCHEDULE_AHEAD_SEC = 1.2;
-const STOP_FADE_SEC = 0.24;
+const CHANNELS = 2;
+const LOOP_RENDER_PASSES = 2;
+const LOOP_PEAK_CEILING = 0.92;
+const PLAY_START_LEAD_SEC = 0.04;
+const STOP_FADE_SEC = 0.18;
+const RENDER_SAMPLE_RATE = 22050;
+const RENDER_TIME_SLICE_MS = 9;
+const RENDER_CACHE_LIMIT = 4;
+const TWO_PI = Math.PI * 2;
+const MIN_GAIN = 0.0001;
+
+const RENDER_CACHE = new WeakMap();
 
 function noteToFrequency(note) {
   if (!note || typeof note !== 'string') return 0;
@@ -31,11 +41,383 @@ function noteToFrequency(note) {
   return 440 * (2 ** (offset / 12 + (Number(octaveText) - 4)));
 }
 
-function makeNoiseBuffer(ctx) {
-  const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * 0.5)), ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+function secondsPerBeat(track) {
+  return 60 / (track?.tempo || 120);
+}
+
+function beatsPerBar(track) {
+  return track?.meter?.[0] || 4;
+}
+
+function sectionBeats(track, name) {
+  const bars = track?.sectionBars?.[name] ?? (name === 'intro' ? track?.introBars ?? 2 : 8);
+  return bars * beatsPerBar(track);
+}
+
+function existingLoopOrder(track) {
+  const order = LOOP_ORDER.filter(name => track?.sections?.[name]);
+  return order.length ? order : SECTION_ORDER.filter(name => name !== 'intro' && track?.sections?.[name]);
+}
+
+function buildTimeline(track, order) {
+  let cursor = 0;
+  const sections = order.map((name) => {
+    const startBeat = cursor;
+    const beats = sectionBeats(track, name);
+    cursor += beats;
+    return { name, startBeat, beats };
+  });
+  return { sections, totalBeats: cursor, totalSeconds: cursor * secondsPerBeat(track) };
+}
+
+function collectEvents(track, sections, passOffsetBeats = 0) {
+  return sections.flatMap(section => (track.sections?.[section.name] || []).map(event => ({
+    ...event,
+    beat: passOffsetBeats + section.startBeat + (event.t ?? 0),
+  })));
+}
+
+function createPcm(length) {
+  return [new Float32Array(length), new Float32Array(length)];
+}
+
+function createBuffer(ctx, pcm, sampleRate) {
+  const buffer = ctx.createBuffer(CHANNELS, Math.max(1, pcm[0]?.length || 1), sampleRate);
+  for (let channel = 0; channel < CHANNELS; channel += 1) buffer.copyToChannel(pcm[channel], channel);
   return buffer;
+}
+
+function copyPcmSlice(pcm, startFrame, length) {
+  return [pcm[0].slice(startFrame, startFrame + length), pcm[1].slice(startFrame, startFrame + length)];
+}
+
+function bufferPeakFromPcm(pcm) {
+  let peak = 0;
+  for (let channel = 0; channel < CHANNELS; channel += 1) {
+    const data = pcm[channel];
+    for (let i = 0; i < data.length; i += 1) {
+      const abs = Math.abs(data[i]);
+      if (abs > peak) peak = abs;
+    }
+  }
+  return peak;
+}
+
+function scalePcm(pcm, gain) {
+  if (!(gain > 0) || Math.abs(gain - 1) < 0.000001) return;
+  for (let channel = 0; channel < CHANNELS; channel += 1) {
+    const data = pcm[channel];
+    for (let i = 0; i < data.length; i += 1) data[i] *= gain;
+  }
+}
+
+function applySharedHeadroom(pcms) {
+  const peak = Math.max(...pcms.filter(Boolean).map(bufferPeakFromPcm), 0);
+  if (peak <= LOOP_PEAK_CEILING || peak <= 0) return;
+  const gain = LOOP_PEAK_CEILING / peak;
+  pcms.forEach(pcm => pcm && scalePcm(pcm, gain));
+}
+
+function schedulerNow() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function yieldToMain() {
+  return new Promise(resolve => globalThis.setTimeout(resolve, 0));
+}
+
+async function renderChunked(items, renderItem) {
+  let index = 0;
+  while (index < items.length) {
+    const deadline = schedulerNow() + RENDER_TIME_SLICE_MS;
+    do {
+      renderItem(items[index]);
+      index += 1;
+    } while (index < items.length && schedulerNow() < deadline);
+    if (index < items.length) await yieldToMain();
+  }
+}
+
+function fastHash(text = '') {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function makeNoise(seed) {
+  let state = seed >>> 0 || 0x6d2b79f5;
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return (((value ^ (value >>> 14)) >>> 0) / 2147483648) - 1;
+  };
+}
+
+function waveform(type, phase) {
+  const normalized = phase - Math.floor(phase);
+  if (type === 'sine') return Math.sin(normalized * TWO_PI);
+  if (type === 'square') return normalized < 0.5 ? 1 : -1;
+  if (type === 'sawtooth') return normalized * 2 - 1;
+  return 1 - 4 * Math.abs(Math.round(normalized - 0.25) - (normalized - 0.25));
+}
+
+function envelopeAt(time, duration, velocity, instrument) {
+  const attack = Math.max(0.001, instrument.attack ?? 0.01);
+  const decay = Math.max(0.001, instrument.decay ?? 0.12);
+  const sustain = instrument.sustain ?? 0.3;
+  const release = Math.max(0.001, instrument.release ?? 0.2);
+  const peak = (instrument.gain ?? 0.5) * velocity;
+
+  if (time < 0) return 0;
+  if (time < attack) return peak * (time / attack);
+  if (time < attack + decay) {
+    const t = (time - attack) / decay;
+    return peak * (1 + (sustain - 1) * t);
+  }
+  if (time < duration) return peak * sustain;
+  if (time < duration + release) {
+    const t = (time - duration) / release;
+    return peak * sustain * ((1 - t) ** 1.5);
+  }
+  return 0;
+}
+
+function panGains(pan = 0) {
+  const clamped = Math.max(-1, Math.min(1, pan));
+  const angle = (clamped + 1) * Math.PI / 4;
+  return [Math.cos(angle), Math.sin(angle)];
+}
+
+function onePoleLowpassAlpha(cutoff, sampleRate) {
+  if (!(cutoff > 0) || cutoff >= sampleRate * 0.45) return 1;
+  const rc = 1 / (TWO_PI * cutoff);
+  const dt = 1 / sampleRate;
+  return dt / (rc + dt);
+}
+
+function addSample(pcm, frame, value, leftGain, rightGain) {
+  if (frame < 0 || frame >= pcm[0].length) return;
+  pcm[0][frame] += value * leftGain;
+  pcm[1][frame] += value * rightGain;
+}
+
+function renderToneVoice(pcm, sampleRate, event, track, instrument, freq, type, multiplier = 1, gainScale = 1) {
+  const spb = secondsPerBeat(track);
+  const startFrame = Math.max(0, Math.round(event.beat * spb * sampleRate));
+  const duration = Math.max(0.04, (event.d ?? 0.2) * spb);
+  const release = Math.max(0.001, instrument.release ?? 0.2);
+  const endFrame = Math.min(pcm[0].length, Math.ceil((event.beat * spb + duration + release + 0.08) * sampleRate));
+  const velocity = event.v ?? 0.7;
+  const [left, right] = panGains(instrument.pan ?? 0);
+  const alpha = onePoleLowpassAlpha(instrument.filter, sampleRate);
+  const detune = 2 ** ((instrument.detune ?? 0) / 1200);
+  let phase = 0;
+  let lowpass = 0;
+  const baseFreq = freq * multiplier * detune;
+  const slide = instrument.slide;
+  const oscType = type ?? instrument.type ?? 'triangle';
+
+  for (let frame = startFrame; frame < endFrame; frame += 1) {
+    const t = (frame - startFrame) / sampleRate;
+    const progress = duration > 0 ? Math.min(1, t / duration) : 1;
+    const currentFreq = slide ? baseFreq * (slide ** progress) : baseFreq;
+    phase += currentFreq / sampleRate;
+    const env = envelopeAt(t, duration, velocity, instrument) * gainScale;
+    let value = waveform(oscType, phase) * env;
+    if (alpha < 1) {
+      lowpass += alpha * (value - lowpass);
+      value = lowpass;
+    }
+    addSample(pcm, frame, value, left, right);
+  }
+}
+
+function renderToneEvent(pcm, sampleRate, event, track, instrument) {
+  const freq = noteToFrequency(event.n);
+  if (!freq) return;
+  if (instrument.kind === 'bell') {
+    const bellInstrument = { ...instrument, sustain: instrument.sustain ?? 0.08, release: instrument.release ?? 0.44 };
+    renderToneVoice(pcm, sampleRate, event, track, bellInstrument, freq, instrument.type ?? 'sine', 1, 0.72);
+    renderToneVoice(pcm, sampleRate, event, track, bellInstrument, freq, 'sine', instrument.partial ?? 2.01, 0.42);
+    return;
+  }
+  renderToneVoice(pcm, sampleRate, event, track, instrument, freq, instrument.type ?? 'triangle');
+}
+
+function renderKick(pcm, sampleRate, event, track) {
+  const spb = secondsPerBeat(track);
+  const when = event.beat * spb;
+  const startFrame = Math.max(0, Math.round(when * sampleRate));
+  const endFrame = Math.min(pcm[0].length, Math.ceil((when + 0.24) * sampleRate));
+  const velocity = event.v ?? 0.7;
+  let phase = 0;
+
+  for (let frame = startFrame; frame < endFrame; frame += 1) {
+    const t = (frame - startFrame) / sampleRate;
+    const freq = 42 + (132 - 42) * Math.exp(-t / 0.055);
+    phase += freq / sampleRate;
+    const attack = Math.min(1, t / 0.01);
+    const decay = Math.exp(-Math.max(0, t - 0.01) / 0.055);
+    const value = Math.sin(phase * TWO_PI) * 0.9 * velocity * attack * decay;
+    addSample(pcm, frame, value, 0.707, 0.707);
+  }
+}
+
+function renderSnare(pcm, sampleRate, event, track) {
+  const spb = secondsPerBeat(track);
+  const when = event.beat * spb;
+  const startFrame = Math.max(0, Math.round(when * sampleRate));
+  const endFrame = Math.min(pcm[0].length, Math.ceil((when + 0.18) * sampleRate));
+  const velocity = event.v ?? 0.7;
+  const noise = makeNoise(fastHash(`${track?.id}:snare:${event.beat}:${velocity}`));
+  let band = 0;
+  let last = 0;
+
+  for (let frame = startFrame; frame < endFrame; frame += 1) {
+    const t = (frame - startFrame) / sampleRate;
+    const attack = Math.min(1, t / 0.012);
+    const decay = Math.exp(-Math.max(0, t - 0.012) / 0.045);
+    const raw = noise();
+    const high = raw - last;
+    last = raw;
+    band += 0.18 * (high - band);
+    const value = band * 0.42 * velocity * attack * decay;
+    addSample(pcm, frame, value, 0.707, 0.707);
+  }
+}
+
+function renderHat(pcm, sampleRate, event, track) {
+  const spb = secondsPerBeat(track);
+  const when = event.beat * spb;
+  const startFrame = Math.max(0, Math.round(when * sampleRate));
+  const endFrame = Math.min(pcm[0].length, Math.ceil((when + 0.07) * sampleRate));
+  const velocity = event.v ?? 0.7;
+  const noise = makeNoise(fastHash(`${track?.id}:hat:${event.beat}:${velocity}`));
+  let last = 0;
+
+  for (let frame = startFrame; frame < endFrame; frame += 1) {
+    const t = (frame - startFrame) / sampleRate;
+    const attack = Math.min(1, t / 0.004);
+    const decay = Math.exp(-Math.max(0, t - 0.004) / 0.018);
+    const raw = noise();
+    const value = (raw - last) * 0.16 * velocity * attack * decay;
+    last = raw;
+    addSample(pcm, frame, value, 0.707, 0.707);
+  }
+}
+
+function expandEvent(track, event) {
+  if (Array.isArray(event.n)) {
+    return event.n.map((note, index) => ({
+      ...event,
+      n: note,
+      v: (event.v ?? 0.7) * (index === 0 ? 1 : 0.84),
+      instrument: { ...DEFAULT_INSTRUMENTS[event.i], ...track?.instruments?.[event.i] },
+    }));
+  }
+  return [{
+    ...event,
+    instrument: { ...DEFAULT_INSTRUMENTS[event.i], ...track?.instruments?.[event.i] },
+  }];
+}
+
+function renderExpandedEvent(pcm, sampleRate, track, event) {
+  const instrument = event.instrument || { ...DEFAULT_INSTRUMENTS[event.i], ...track?.instruments?.[event.i] };
+  if (instrument.kind === 'kick') return renderKick(pcm, sampleRate, event, track);
+  if (instrument.kind === 'snare') return renderSnare(pcm, sampleRate, event, track);
+  if (instrument.kind === 'hat') return renderHat(pcm, sampleRate, event, track);
+  return renderToneEvent(pcm, sampleRate, event, track, instrument);
+}
+
+function expandEvents(track, events) {
+  return events.flatMap(event => expandEvent(track, event))
+    .sort((a, b) => (a.beat ?? 0) - (b.beat ?? 0));
+}
+
+async function renderPcm(ctx, track, events, durationSeconds, sampleRate) {
+  const length = Math.max(1, Math.ceil(durationSeconds * sampleRate));
+  const pcm = createPcm(length);
+  const expanded = expandEvents(track, events);
+  await renderChunked(expanded, event => renderExpandedEvent(pcm, sampleRate, track, event));
+  return pcm;
+}
+
+async function renderLoopPcm(ctx, track, loopTimeline, sampleRate) {
+  const loopFrames = Math.max(1, Math.round(loopTimeline.totalSeconds * sampleRate));
+  const events = [];
+  for (let pass = 0; pass < LOOP_RENDER_PASSES; pass += 1) {
+    events.push(...collectEvents(track, loopTimeline.sections, pass * loopTimeline.totalBeats));
+  }
+  const rendered = await renderPcm(ctx, track, events, (loopFrames * LOOP_RENDER_PASSES) / sampleRate, sampleRate);
+  return copyPcmSlice(rendered, loopFrames, loopFrames);
+}
+
+async function renderEntryPcm(ctx, track, introTimeline, loopTimeline, sampleRate) {
+  if (!introTimeline.sections.length) return null;
+  const introEvents = collectEvents(track, introTimeline.sections, 0);
+  const loopEvents = collectEvents(track, loopTimeline.sections, introTimeline.totalBeats);
+  return renderPcm(ctx, track, [...introEvents, ...loopEvents], introTimeline.totalSeconds + loopTimeline.totalSeconds, sampleRate);
+}
+
+function renderSampleRate(ctx) {
+  return Math.max(3000, Math.min(ctx?.sampleRate || RENDER_SAMPLE_RATE, RENDER_SAMPLE_RATE));
+}
+
+async function renderTrackBuffers(ctx, track) {
+  const introOrder = track?.sections?.intro ? ['intro'] : [];
+  const loopOrder = existingLoopOrder(track);
+  if (!loopOrder.length) return null;
+
+  const introTimeline = buildTimeline(track, introOrder);
+  const loopTimeline = buildTimeline(track, loopOrder);
+  const sampleRate = renderSampleRate(ctx);
+  const loopPcm = await renderLoopPcm(ctx, track, loopTimeline, sampleRate);
+  const entryPcm = await renderEntryPcm(ctx, track, introTimeline, loopTimeline, sampleRate);
+  applySharedHeadroom([entryPcm, loopPcm]);
+
+  return {
+    entryBuffer: entryPcm ? createBuffer(ctx, entryPcm, sampleRate) : null,
+    loopBuffer: createBuffer(ctx, loopPcm, sampleRate),
+  };
+}
+
+function cacheKey(track, ctx) {
+  return `${track?.id || 'unknown'}:${renderSampleRate(ctx)}`;
+}
+
+function getRenderCacheForContext(ctx) {
+  let cache = RENDER_CACHE.get(ctx);
+  if (!cache) {
+    cache = new Map();
+    RENDER_CACHE.set(ctx, cache);
+  }
+  return cache;
+}
+
+function trimRenderCache(cache) {
+  while (cache.size > RENDER_CACHE_LIMIT) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+}
+
+function getRenderedBuffers(ctx, track) {
+  const cache = getRenderCacheForContext(ctx);
+  const key = cacheKey(track, ctx);
+  if (cache.has(key)) return cache.get(key);
+
+  const promise = renderTrackBuffers(ctx, track).catch((error) => {
+    cache.delete(key);
+    throw error;
+  });
+  cache.set(key, promise);
+  trimRenderCache(cache);
+  return promise;
 }
 
 function safeStop(source, when = 0) {
@@ -53,23 +435,12 @@ export class BgmTrackPlayer {
     this.currentTrackId = null;
     this.track = null;
     this.bus = null;
-    this.nextStart = 0;
-    this.didIntro = false;
-    this.loopIndex = 0;
-    this.scheduledSegments = [];
-    this.disposables = new Set();
+    this.sources = new Set();
+    this.renderToken = 0;
   }
 
   get ctx() {
     return this.getContext?.() || null;
-  }
-
-  get secondsPerBeat() {
-    return 60 / (this.track?.tempo || 120);
-  }
-
-  get beatsPerBar() {
-    return this.track?.meter?.[0] || 4;
   }
 
   play(track) {
@@ -79,249 +450,86 @@ export class BgmTrackPlayer {
     if (this.currentTrackId === track.id && this.bus) return;
 
     this.stop(STOP_FADE_SEC);
+    const token = this.renderToken + 1;
+    this.renderToken = token;
     this.currentTrackId = track.id;
     this.track = track;
     this.bus = ctx.createGain();
-    this.bus.gain.setValueAtTime(0.0001, ctx.currentTime);
-    this.bus.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.42);
+    this.bus.gain.setValueAtTime(MIN_GAIN, ctx.currentTime);
+    this.bus.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.36);
     this.bus.connect(destination);
-    this.nextStart = ctx.currentTime + 0.06;
-    this.didIntro = false;
-    this.loopIndex = 0;
-    this.scheduledSegments = [];
-    this.scheduleAhead();
+
+    getRenderedBuffers(ctx, track)
+      .then((buffers) => {
+        if (this.renderToken !== token || this.currentTrackId !== track.id || !this.bus || !buffers?.loopBuffer) return;
+        this.startBuffers(buffers, ctx.currentTime + PLAY_START_LEAD_SEC);
+      })
+      .catch(() => {
+        if (this.renderToken === token) this.stop(0);
+      });
+  }
+
+  startBuffers({ entryBuffer, loopBuffer }, startAt) {
+    const ctx = this.ctx;
+    if (!ctx || !this.bus || !loopBuffer) return;
+
+    if (entryBuffer) {
+      const entrySource = ctx.createBufferSource();
+      entrySource.buffer = entryBuffer;
+      entrySource.connect(this.bus);
+      entrySource.start(startAt);
+      this.trackSource(entrySource);
+
+      const loopSource = ctx.createBufferSource();
+      loopSource.buffer = loopBuffer;
+      loopSource.loop = true;
+      loopSource.connect(this.bus);
+      loopSource.start(startAt + entryBuffer.duration);
+      this.trackSource(loopSource);
+      return;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = loopBuffer;
+    source.loop = true;
+    source.connect(this.bus);
+    source.start(startAt);
+    this.trackSource(source);
   }
 
   stop(fadeSeconds = STOP_FADE_SEC) {
+    this.renderToken += 1;
     const ctx = this.ctx;
     const bus = this.bus;
     const at = ctx?.currentTime ?? 0;
 
     if (ctx && bus) {
       bus.gain.cancelScheduledValues(at);
-      bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value || 0.0001), at);
-      bus.gain.exponentialRampToValueAtTime(0.0001, at + fadeSeconds);
+      bus.gain.setValueAtTime(Math.max(MIN_GAIN, bus.gain.value || MIN_GAIN), at);
+      bus.gain.exponentialRampToValueAtTime(MIN_GAIN, at + fadeSeconds);
       globalThis.setTimeout(() => safeDisconnect(bus), (fadeSeconds + 0.08) * 1000);
     } else if (bus) {
       safeDisconnect(bus);
     }
 
-    for (const entry of this.disposables) {
-      for (const source of entry.sources) safeStop(source, at + fadeSeconds);
-      globalThis.setTimeout(() => entry.cleanup(), (fadeSeconds + 0.12) * 1000);
+    for (const source of this.sources) {
+      safeStop(source, at + fadeSeconds);
+      globalThis.setTimeout(() => safeDisconnect(source), (fadeSeconds + 0.12) * 1000);
     }
+    this.sources.clear();
 
     this.currentTrackId = null;
     this.track = null;
     this.bus = null;
-    this.nextStart = 0;
-    this.didIntro = false;
-    this.loopIndex = 0;
-    this.scheduledSegments = [];
   }
 
-  update() {
-    this.scheduleAhead();
-  }
+  update() {}
 
-  segmentBeats(name) {
-    const bars = this.track?.sectionBars?.[name] ?? (name === 'intro' ? this.track?.introBars ?? 2 : 8);
-    return bars * this.beatsPerBar;
-  }
-
-  nextSegmentName() {
-    if (!this.didIntro && this.track?.sections?.intro) {
-      this.didIntro = true;
-      return 'intro';
-    }
-    const existingLoopOrder = LOOP_ORDER.filter(name => this.track?.sections?.[name]);
-    const order = existingLoopOrder.length ? existingLoopOrder : SECTION_ORDER.filter(name => this.track?.sections?.[name]);
-    const name = order[this.loopIndex % order.length] || 'intro';
-    this.loopIndex += 1;
-    return name;
-  }
-
-  scheduleAhead() {
-    const ctx = this.ctx;
-    if (!ctx || !this.bus || !this.track) return;
-    const aheadUntil = ctx.currentTime + SCHEDULE_AHEAD_SEC;
-    let safety = 0;
-    while (this.nextStart < aheadUntil && safety < 8) {
-      const name = this.nextSegmentName();
-      this.scheduleSection(name, this.nextStart);
-      const end = this.nextStart + this.segmentBeats(name) * this.secondsPerBeat;
-      this.scheduledSegments.push({ name, start: this.nextStart, end });
-      this.scheduledSegments = this.scheduledSegments.filter(segment => segment.end > ctx.currentTime - 0.5);
-      this.nextStart = end;
-      safety += 1;
-    }
-  }
-
-  scheduleSection(name, startTime) {
-    const events = this.track?.sections?.[name] || [];
-    events.forEach(event => this.scheduleEvent(event, startTime));
-  }
-
-  scheduleEvent(event, sectionStart) {
-    if (Array.isArray(event.n)) {
-      event.n.forEach((note, index) => this.scheduleEvent({ ...event, n: note, v: (event.v ?? 0.7) * (index === 0 ? 1 : 0.84) }, sectionStart));
-      return;
-    }
-
-    const instrument = { ...DEFAULT_INSTRUMENTS[event.i], ...this.track?.instruments?.[event.i] };
-    const when = sectionStart + event.t * this.secondsPerBeat;
-    const duration = Math.max(0.04, event.d * this.secondsPerBeat);
-    const velocity = event.v ?? 0.7;
-
-    if (instrument.kind === 'kick') return this.scheduleKick(when, velocity);
-    if (instrument.kind === 'snare') return this.scheduleSnare(when, velocity);
-    if (instrument.kind === 'hat') return this.scheduleHat(when, velocity);
-
-    const freq = noteToFrequency(event.n);
-    if (!freq) return;
-    if (instrument.kind === 'bell') this.scheduleBell(freq, when, duration, velocity, instrument);
-    else this.scheduleTone(freq, when, duration, velocity, instrument);
-  }
-
-  connectVoice(output, instrument, nodes) {
-    let node = output;
-    if (instrument.filter) {
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = instrument.filter;
-      filter.Q.value = instrument.q ?? 0.7;
-      node.connect(filter);
-      node = filter;
-      nodes.push(filter);
-    }
-    const pan = this.ctx.createStereoPanner();
-    pan.pan.value = instrument.pan ?? 0;
-    node.connect(pan);
-    pan.connect(this.bus);
-    nodes.push(pan);
-  }
-
-  envelope(gainNode, when, duration, velocity, instrument) {
-    const attack = instrument.attack ?? 0.01;
-    const decay = instrument.decay ?? 0.12;
-    const sustain = instrument.sustain ?? 0.3;
-    const release = instrument.release ?? 0.2;
-    const peak = (instrument.gain ?? 0.5) * velocity;
-    gainNode.gain.cancelScheduledValues(when);
-    gainNode.gain.setValueAtTime(0.0001, when);
-    gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), when + attack);
-    gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak * sustain), when + attack + decay);
-    gainNode.gain.setValueAtTime(Math.max(0.0002, peak * sustain), when + Math.max(attack + decay, duration * 0.65));
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, when + duration + release);
-    return release;
-  }
-
-  scheduleTone(freq, when, duration, velocity, instrument) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const nodes = [gain];
-    osc.type = instrument.type ?? 'triangle';
-    osc.frequency.setValueAtTime(freq, when);
-    if (instrument.slide) osc.frequency.exponentialRampToValueAtTime(freq * instrument.slide, when + duration);
-    osc.detune.value = instrument.detune ?? 0;
-    osc.connect(gain);
-    this.connectVoice(gain, instrument, nodes);
-    const release = this.envelope(gain, when, duration, velocity, instrument);
-    osc.start(when);
-    const stopAt = when + duration + release + 0.08;
-    osc.stop(stopAt);
-    this.trackDisposable([osc], nodes, stopAt);
-  }
-
-  scheduleBell(freq, when, duration, velocity, instrument) {
-    const gain = this.ctx.createGain();
-    const oscA = this.ctx.createOscillator();
-    const oscB = this.ctx.createOscillator();
-    const nodes = [gain];
-    oscA.type = instrument.type ?? 'sine';
-    oscB.type = 'sine';
-    oscA.frequency.setValueAtTime(freq, when);
-    oscB.frequency.setValueAtTime(freq * (instrument.partial ?? 2.01), when);
-    oscA.connect(gain);
-    oscB.connect(gain);
-    this.connectVoice(gain, instrument, nodes);
-    const release = this.envelope(gain, when, duration, velocity, { ...instrument, sustain: instrument.sustain ?? 0.08, release: instrument.release ?? 0.44 });
-    oscA.start(when);
-    oscB.start(when);
-    const stopAt = when + duration + release + 0.08;
-    oscA.stop(stopAt);
-    oscB.stop(stopAt);
-    this.trackDisposable([oscA, oscB], nodes, stopAt);
-  }
-
-  scheduleKick(when, velocity) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(132, when);
-    osc.frequency.exponentialRampToValueAtTime(42, when + 0.18);
-    gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.9 * velocity, when + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.22);
-    osc.connect(gain).connect(this.bus);
-    osc.start(when);
-    const stopAt = when + 0.24;
-    osc.stop(stopAt);
-    this.trackDisposable([osc], [gain], stopAt);
-  }
-
-  scheduleSnare(when, velocity) {
-    const src = this.ctx.createBufferSource();
-    const filter = this.ctx.createBiquadFilter();
-    const gain = this.ctx.createGain();
-    src.buffer = makeNoiseBuffer(this.ctx);
-    filter.type = 'bandpass';
-    filter.frequency.value = 1900;
-    filter.Q.value = 0.9;
-    gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.42 * velocity, when + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.16);
-    src.connect(filter).connect(gain).connect(this.bus);
-    src.start(when);
-    const stopAt = when + 0.18;
-    src.stop(stopAt);
-    this.trackDisposable([src], [filter, gain], stopAt);
-  }
-
-  scheduleHat(when, velocity) {
-    const src = this.ctx.createBufferSource();
-    const filter = this.ctx.createBiquadFilter();
-    const gain = this.ctx.createGain();
-    src.buffer = makeNoiseBuffer(this.ctx);
-    filter.type = 'highpass';
-    filter.frequency.value = 6200;
-    gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.16 * velocity, when + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.055);
-    src.connect(filter).connect(gain).connect(this.bus);
-    src.start(when);
-    const stopAt = when + 0.07;
-    src.stop(stopAt);
-    this.trackDisposable([src], [filter, gain], stopAt);
-  }
-
-  trackDisposable(sources, nodes, stopAt) {
-    const entry = { sources, nodes, cleanup: null };
-    entry.cleanup = () => {
-      if (!this.disposables.has(entry)) return;
-      this.disposables.delete(entry);
-      for (const source of sources) safeDisconnect(source);
-      for (const node of nodes) safeDisconnect(node);
+  trackSource(source) {
+    this.sources.add(source);
+    source.onended = () => {
+      this.sources.delete(source);
+      safeDisconnect(source);
     };
-    this.disposables.add(entry);
-    let remaining = sources.length;
-    for (const source of sources) {
-      source.onended = () => {
-        remaining -= 1;
-        if (remaining <= 0) entry.cleanup();
-      };
-    }
-    const ctx = this.ctx;
-    if (ctx) globalThis.setTimeout(() => entry.cleanup(), Math.max(0, stopAt - ctx.currentTime + 0.1) * 1000);
   }
 }

@@ -5,12 +5,20 @@
 import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { WORLDS } from '../data/worlds.js';
+import { STAGE_ROUTES } from '../data/stages.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { TutorialDialogController } from '../ui/dialogs/TutorialDialogController.js';
 import { GardenView } from '../ui/views/GardenView.js';
 import { drawCoverBackground } from '../utils/background.js';
 
 const GARDEN_WALK_FRAMES = ['hero_walk_1', 'hero_walk_2', 'hero_walk_3', 'hero_walk_4', 'hero_walk_3', 'hero_walk_2'];
+const ROUTE_STAGE_IDS_BY_ROUTE = Object.freeze(Object.fromEntries(STAGE_ROUTES.map(route => [route.id, route.stageIds])));
+
+function getDreamDropStatus(save, routeId) {
+  const stageIds = ROUTE_STAGE_IDS_BY_ROUTE[routeId] || [];
+  const acquired = stageIds.filter(stageId => !!save.dreamDrops?.[stageId]).length;
+  return { acquired, max: stageIds.length };
+}
 
 function drawSprite(ctx, img, x, y, w, h, flipX = false) {
   if (!img) return;
@@ -46,7 +54,8 @@ export class GardenScene extends BaseScene {
     WORLDS.forEach((world, index) => {
       const unlocked = index === 0 || save.clearedStages.includes(WORLDS[index - 1].routeId);
       const record = save.stages[world.routeId];
-      const row = this.view.createStageButton({ world, index, unlocked, record });
+      const dreamDrops = getDreamDropStatus(save, world.routeId);
+      const row = this.view.createStageButton({ world, index, unlocked, record, dreamDrops });
       row.addEventListener('click', () => {
         this.app.audio.resume();
         this.app.audio.playSfx('ui_decide');

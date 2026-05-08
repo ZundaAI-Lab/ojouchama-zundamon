@@ -159,7 +159,8 @@ const stage = {
       "y": 288,
       "w": 120,
       "h": 16,
-      "kind": "ribbonWind",
+      "kind": "wind",
+      "windStyle": "ribbon",
       "windDir": -1
     }
   ],

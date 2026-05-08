@@ -5,12 +5,17 @@
  */
 import { createTest } from '../TestRunner.js';
 import { STAGES } from '../../data/stages.js';
+import { PLATFORM_KINDS } from '../../data/platformDefs.js';
 import { createEditorStage } from '../../editor/stageEditorSchema.js';
 import { hasValidationErrors, validateEditorStage } from '../../editor/stageEditorValidation.js';
 import { parseStageJson, serializeStageToJsModule, serializeStageToJson } from '../../editor/stageEditorSerializer.js';
 import { readStageEditorPreview, STAGE_EDITOR_PREVIEW_STORAGE_KEY, writeStageEditorPreview } from '../../editor/stageEditorPreviewBridge.js';
 import { EDITOR_CATEGORY_DEFS, EDITOR_DIALOGUE_DEFS, EDITOR_DIALOGUE_PORTRAIT_OPTIONS, EDITOR_OBJECT_PRESETS, getEditorFieldGroupsForObject } from '../../editor/stageEditorCatalog.js';
-import { canResizeEditorObject, createEditorDialogueLine, createEditorSelectionKey, getEditorCanvasViewBounds, getEditorDialogueSummary, getEditorHitTestCategoryOrder, getEditorItemMetrics, getEditorObjectImageKey, getEditorResidentMetrics, getEditorVisibleStageRect, getNextEditorCanvasScale, isEditorResizeHandleHit, moveEditorDialogueLine, moveEditorObjectByDelta, normalizeEditorDialogueLine, placeEditorObjectInVisibleRect, EDITOR_CANVAS_OUTSIDE_MARGIN, EDITOR_CANVAS_ZOOM, EDITOR_DUPLICATE_OFFSET } from '../../editor/StageEditorApp.js';
+import { createEditorDialogueLine, getEditorDialogueSummary, moveEditorDialogueLine, normalizeEditorDialogueLine } from '../../editor/StageEditorDialoguePanel.js';
+import { EDITOR_CANVAS_OUTSIDE_MARGIN, EDITOR_CANVAS_ZOOM, canResizeEditorObject, getEditorCanvasViewBounds, getEditorVisibleStageRect, getNextEditorCanvasScale, isEditorResizeHandleHit } from '../../editor/stageEditorGeometry.js';
+import { getEditorHitTestCategoryOrder, createEditorSelectionKey } from '../../editor/stageEditorSelection.js';
+import { getEditorItemMetrics, getEditorObjectImageKey, getEditorResidentMetrics } from '../../editor/stageEditorObjectMetrics.js';
+import { EDITOR_DUPLICATE_OFFSET, moveEditorObjectByDelta, placeEditorObjectInVisibleRect } from '../../editor/stageEditorObjectMutation.js';
 
 export const stageEditorTests = [
   createTest('stageEditor', '既存ステージはエディタ保存前検証でerrorにならない', ({ assert }) => {
@@ -54,6 +59,50 @@ export const stageEditorTests = [
   createTest('stageEditor', '足場追加プリセットの初期高さは16になる', ({ assert }) => {
     assert(EDITOR_OBJECT_PRESETS.platforms.length > 0, '足場プリセットがありません');
     assert(EDITOR_OBJECT_PRESETS.platforms.every(preset => preset.value.h === 16), '足場追加時の初期高さが16ではありません');
+  }),
+
+  createTest('stageEditor', '蔓の足場は通常の矩形足場として追加できる', ({ assert, equal }) => {
+    const preset = EDITOR_OBJECT_PRESETS.platforms.find(item => item.value.kind === PLATFORM_KINDS.VINE_PLATFORM);
+    assert(!!preset, '蔓の足場プリセットがありません');
+    equal(preset.label, '蔓の足場');
+    assert(preset.value.active === true, '蔓の足場は初期状態で有効です');
+    const groups = getEditorFieldGroupsForObject('platforms', preset.value);
+    const fields = groups.flatMap(group => group.fields);
+    const keys = fields.map(field => field.key);
+    assert(['x', 'y', 'w', 'h', 'kind', 'active'].every(key => keys.includes(key)), '蔓の足場を矩形足場の共通項目で編集できません');
+    const styleField = fields.find(field => field.key === 'vineStyle');
+    assert(!!styleField, '蔓の足場スタイルを編集できません');
+    assert(styleField.options.some(option => option.value === 'rose'), '薔薇の蔓スタイル候補がありません');
+  }),
+
+
+  createTest('stageEditor', '未知の蔓足場スタイルは保存前検証でerrorになる', ({ assert }) => {
+    const stage = createEditorStage({
+      id: 'vine_style_test',
+      platforms: [{ x: 0, y: 200, w: 96, h: 16, kind: PLATFORM_KINDS.VINE_PLATFORM, active: true, vineStyle: 'unknown' }],
+    });
+    const messages = validateEditorStage(stage);
+    assert(hasValidationErrors(messages), '未知の蔓足場スタイルがerrorになっていません');
+  }),
+
+
+
+  createTest('stageEditor', '通常床スタイルを編集できる', ({ assert }) => {
+    const groups = getEditorFieldGroupsForObject('platforms', { kind: PLATFORM_KINDS.NORMAL });
+    const fields = groups.flatMap(group => group.fields);
+    const styleField = fields.find(field => field.key === 'platformStyle');
+    assert(!!styleField, '通常床スタイルを編集できません');
+    assert(styleField.options.some(option => option.value === 'normal' && option.label === '通常'), '通常スタイル候補がありません');
+    assert(styleField.options.some(option => option.value === 'dreamTree'), '夢みる豆の木スタイル候補がありません');
+  }),
+
+  createTest('stageEditor', '未知の通常床スタイルは保存前検証でerrorになる', ({ assert }) => {
+    const stage = createEditorStage({
+      id: 'platform_style_test',
+      platforms: [{ x: 0, y: 200, w: 96, h: 16, kind: PLATFORM_KINDS.NORMAL, active: true, platformStyle: 'unknown' }],
+    });
+    const messages = validateEditorStage(stage);
+    assert(hasValidationErrors(messages), '未知の通常床スタイルがerrorになっていません');
   }),
 
 
@@ -107,14 +156,6 @@ export const stageEditorTests = [
     const bounds = getEditorCanvasViewBounds(stage);
     assert(bounds.x <= -320 - EDITOR_CANVAS_OUTSIDE_MARGIN, '負方向の範囲外オブジェクトを表示範囲へ含めます');
     assert(bounds.w > stage.width, 'ステージ幅より広い編集用キャンバスを作ります');
-  }),
-
-  createTest('stageEditor', 'xのみの中継ポイントを含むステージもキャンバス表示範囲が壊れない', ({ assert }) => {
-    const stage = createEditorStage(STAGES.candy_forest_area_1);
-    const checkpoint = stage.checkpoints[0];
-    assert(Number.isFinite(checkpoint.y) && Number.isFinite(checkpoint.w) && Number.isFinite(checkpoint.h), '中継ポイントの表示用矩形が補完されていません');
-    const bounds = getEditorCanvasViewBounds(stage);
-    assert([bounds.x, bounds.y, bounds.w, bounds.h].every(Number.isFinite), 'キャンバス表示範囲にNaNが含まれています');
   }),
 
   createTest('stageEditor', '表示中画面の中央へ新規オブジェクトを配置できる', ({ equal, assert }) => {

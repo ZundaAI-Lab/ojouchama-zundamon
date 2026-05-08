@@ -9,14 +9,14 @@ const stage = {
   "name": "お菓子の森：クッキーこみち",
   "backgroundKey": "bg_candy_world2",
   "bgm": "world1-candy-forest",
-  "width": 2660,
+  "width": 2800,
   "height": 360,
   "playerStart": {
     "x": 48,
     "y": 288
   },
   "goal": {
-    "x": 2592,
+    "x": 2736,
     "y": 264,
     "variant": "sign_board"
   },
@@ -120,13 +120,13 @@ const stage = {
     {
       "kind": "crumble",
       "x": 1424,
-      "y": 248,
+      "y": 240,
       "w": 96,
       "h": 16,
       "active": true
     },
     {
-      "x": 1824,
+      "x": 1912,
       "y": 296,
       "w": 96,
       "h": 16,
@@ -134,7 +134,7 @@ const stage = {
       "active": false
     },
     {
-      "x": 1960,
+      "x": 2048,
       "y": 320,
       "w": 192,
       "h": 40,
@@ -142,9 +142,9 @@ const stage = {
       "active": true
     },
     {
-      "x": 2472,
+      "x": 2560,
       "y": 320,
-      "w": 192,
+      "w": 240,
       "h": 40,
       "kind": "normal",
       "active": true
@@ -152,14 +152,14 @@ const stage = {
     {
       "kind": "crumble",
       "x": 1560,
-      "y": 216,
+      "y": 208,
       "w": 96,
       "h": 16,
       "active": true
     },
     {
       "x": 1688,
-      "y": 184,
+      "y": 176,
       "w": 80,
       "h": 16,
       "kind": "normal",
@@ -168,7 +168,7 @@ const stage = {
     {
       "x": 1400,
       "y": 320,
-      "w": 384,
+      "w": 464,
       "h": 40,
       "kind": "normal",
       "active": true
@@ -191,7 +191,7 @@ const stage = {
     },
     {
       "kind": "crumble",
-      "x": 2184,
+      "x": 2272,
       "y": 280,
       "w": 96,
       "h": 16,
@@ -199,11 +199,19 @@ const stage = {
     },
     {
       "kind": "crumble",
-      "x": 2344,
+      "x": 2432,
       "y": 280,
       "w": 96,
       "h": 16,
       "active": true
+    },
+    {
+      "x": 1920,
+      "y": 120,
+      "w": 80,
+      "h": 16,
+      "kind": "vine",
+      "active": false
     }
   ],
   "residents": [
@@ -229,18 +237,25 @@ const stage = {
       "maxX": 1240
     },
     {
-      "x": 1664,
-      "y": 288,
+      "x": 1544,
+      "y": 296,
       "type": "jelly",
       "minX": 1408,
-      "maxX": 1768
+      "maxX": 1632
     },
     {
-      "x": 2008,
+      "x": 2096,
       "y": 296,
       "type": "macaron",
-      "minX": 1970,
-      "maxX": 2144
+      "minX": 2056,
+      "maxX": 2232
+    },
+    {
+      "x": 1728,
+      "y": 296,
+      "type": "jelly",
+      "minX": 1632,
+      "maxX": 1856
     }
   ],
   "items": [
@@ -281,21 +296,21 @@ const stage = {
     },
     {
       "x": 1728,
-      "y": 152,
+      "y": 144,
       "kind": "teacup"
     },
     {
-      "x": 1872,
+      "x": 1960,
       "y": 248,
       "kind": "coin"
     },
     {
-      "x": 1872,
+      "x": 1960,
       "y": 208,
       "kind": "coin"
     },
     {
-      "x": 2080,
+      "x": 2168,
       "y": 256,
       "kind": "scone"
     },
@@ -306,23 +321,33 @@ const stage = {
     },
     {
       "x": 1472,
-      "y": 192,
+      "y": 208,
       "kind": "coin"
     },
     {
       "x": 1600,
-      "y": 160,
+      "y": 176,
       "kind": "coin"
     },
     {
-      "x": 2296,
+      "x": 2384,
       "y": 224,
       "kind": "coin"
     },
     {
-      "x": 2328,
+      "x": 2416,
       "y": 224,
       "kind": "coin"
+    },
+    {
+      "x": 1808,
+      "y": 248,
+      "kind": "coin"
+    },
+    {
+      "x": 1960,
+      "y": 40,
+      "kind": "dreamDrop"
     }
   ],
   "decorations": [
@@ -351,7 +376,7 @@ const stage = {
       "color": "rgba(246,251,207,0.26)"
     },
     {
-      "x": 2104,
+      "x": 2192,
       "y": 176,
       "r": 9,
       "color": "rgba(255,255,255,0.22)"
@@ -386,7 +411,7 @@ const stage = {
       "id": "area_1",
       "name": "エリア1",
       "startX": 0,
-      "endX": 2660,
+      "endX": 2800,
       "respawn": {
         "x": 48,
         "y": 264

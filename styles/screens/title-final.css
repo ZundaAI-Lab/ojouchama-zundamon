@@ -2,6 +2,7 @@
  * 責務: タイトル画面の最終レイアウト補正とレスポンシブ調整を担当する。
  * 更新ルール: title.css の後続補正として読み込まれる前提を崩さず、TitleView のDOM構造と同時に更新する。
  * 更新ルール: タイトル画面は上部タイトルの直下に少し余白を空けて、進行状況パネルと操作ボタンパネルを上下配置する。
+ * 更新ルール: 右下のバージョン表記は TitleView の専用要素だけを対象にし、共通メニューへ影響させない。
  */
 .title-screen {
   display: grid;
@@ -117,6 +118,22 @@
   min-height: clamp(54px, 6vh, 68px);
   font-size: clamp(21px, 1.75vw, 28px);
   padding: 14px 22px;
+}
+
+
+.title-version-label {
+  position: absolute;
+  right: clamp(12px, 2vw, 24px);
+  bottom: clamp(8px, 1.6vh, 18px);
+  z-index: 3;
+  color: rgba(91, 78, 88, 0.58);
+  font-size: clamp(10px, 0.95vw, 13px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+  pointer-events: none;
+  user-select: none;
 }
 
 .primary-btn:disabled,

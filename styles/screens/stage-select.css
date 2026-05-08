@@ -1,0 +1,78 @@
+/*
+ * 責務: ステージ選択カードの一覧密度と選択行補正を担当する。
+ * 更新ルール: 会話ウィンドウのスタイルを混ぜず、ステージ選択DOMの見た目だけを追加する。
+ */
+/* patch_03: ステージ選択は全ステージを一覧できる2列レイアウトにする */
+.garden-screen {
+  padding: 5px;
+}
+.garden-card.stage-card {
+  width: min(100%, 468px);
+  max-height: 260px;
+  padding: 7px 8px;
+}
+.stage-card .garden-header {
+  align-items: center;
+}
+.stage-card .garden-header .menu-title {
+  font-size: 19px;
+  margin-bottom: 2px;
+}
+.stage-card .garden-header .menu-subtitle {
+  font-size: 10px;
+  line-height: 1.25;
+}
+.stage-card .garden-coin {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+.stage-card .stage-section {
+  margin-top: 5px;
+  padding: 4px;
+  overflow: visible;
+}
+.stage-card .stage-section h2 {
+  display: none;
+}
+.stage-card .stage-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.stage-card .stage-select {
+  min-height: 52px;
+  padding: 6px 7px;
+  gap: 7px;
+  border-radius: 15px;
+}
+.stage-card .stage-select img {
+  width: 42px;
+  height: 44px;
+}
+.stage-card .stage-select strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+.stage-card .stage-select span {
+  font-size: 9.5px;
+  line-height: 1.25;
+}
+.stage-card .stage-select em {
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+.stage-card .garden-actions {
+  margin-top: 5px;
+}
+.stage-card .garden-actions .primary-btn,
+.stage-card .garden-actions .secondary-btn {
+  padding: 8px 14px;
+}
+
+/* patch_03: ステージ冒頭会話は画面中央に表示する */
+
+@media (max-width: 680px) {
+  .stage-card .stage-select img {
+    width: 42px;
+    height: 44px;
+  }
+}

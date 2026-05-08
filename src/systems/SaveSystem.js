@@ -6,6 +6,7 @@
  * 更新ルール: ショップ商品の購入可否は強化定義の宣言条件を確認し、未解放商品の直接購入を許可しない。
  * 更新ルール: デバッグ用の進行フラグ変更も、保存形式の整合性維持のためここで正規化する。
  * 更新ルール: BGM/SEの音量設定はsettings配下で分けて保持し、読み込み時に0〜1へ正規化する。
+ * 更新ルール: 夢のしずく獲得状況はエリアstageId単位でdreamDropsへ保持し、取得だけでは保存せずゴール時に記録する。
  */
 import { STORAGE_KEY, UPGRADE_DEFS } from '../config/upgradeDefs.js';
 import { SHOP_ITEM_DEFS, clampTeacups } from '../config/teacupInventory.js';
@@ -30,6 +31,7 @@ const defaultSave = () => ({
   teacups: 0,
   clearedStages: [],
   stages: {},
+  dreamDrops: {},
   upgrades: defaultUpgrades(),
   settings: defaultSettings(),
   storyFlags: {
@@ -55,12 +57,18 @@ function normalizeSettings(settings = {}) {
   return merged;
 }
 
+function normalizeDreamDrops(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([stageId, acquired]) => typeof stageId === 'string' && !!acquired));
+}
+
 function saveHasProgress(save) {
   if (!save) return false;
   if ((save.totalCoins || 0) > 0) return true;
   if (clampTeacups(save.teacups) > 0) return true;
   if (Array.isArray(save.clearedStages) && save.clearedStages.length > 0) return true;
   if (save.stages && Object.keys(save.stages).length > 0) return true;
+  if (save.dreamDrops && Object.keys(save.dreamDrops).length > 0) return true;
   if (save.endingSeen) return true;
   if (Object.values(save.storyFlags || {}).some(Boolean)) return true;
   return Object.values(save.upgrades || {}).some(level => (level || 0) > 0);
@@ -91,6 +99,7 @@ export class SaveSystem {
         storyFlags: { ...base.storyFlags, ...(parsed.storyFlags || {}) },
         clearedStages: Array.isArray(parsed.clearedStages) ? parsed.clearedStages : [],
         stages: parsed.stages || {},
+        dreamDrops: normalizeDreamDrops(parsed.dreamDrops),
       };
     } catch {
       return defaultSave();
@@ -129,6 +138,26 @@ export class SaveSystem {
   bestRank(a = 'C', b = 'C') {
     const order = ['C', 'B', 'A', 'S', 'Royal S'];
     return order[Math.max(order.indexOf(a), order.indexOf(b))] || b;
+  }
+
+  hasDreamDrop(stageId) {
+    if (!stageId) return false;
+    const save = this.load();
+    return !!save.dreamDrops?.[stageId];
+  }
+
+  recordDreamDrops(stageIds = []) {
+    const ids = [...new Set((Array.isArray(stageIds) ? stageIds : [stageIds]).filter(Boolean))];
+    const save = this.load();
+    save.dreamDrops = normalizeDreamDrops(save.dreamDrops);
+    let changed = false;
+    for (const stageId of ids) {
+      if (save.dreamDrops[stageId]) continue;
+      save.dreamDrops[stageId] = true;
+      changed = true;
+    }
+    if (changed) this.save(save);
+    return save;
   }
 
 

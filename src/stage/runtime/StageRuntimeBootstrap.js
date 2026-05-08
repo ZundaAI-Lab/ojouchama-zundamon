@@ -6,6 +6,8 @@
  * 更新ルール: editor.htmlの一時ステージ定義はparams.stageDefinitionから受け取り、STAGESの正本データへ書き戻さない。
  * 更新ルール: ステージ開始BGMは正規化済みstage.bgmをaudioの解決関数へ渡し、Runtime本体へ曲データを持ち込まない。
  * 更新ルール: イベント中断後に再開するためのステージBGM IDとイベントBGM一時状態だけをRuntime状態として保持し、発音・フェード処理はaudioへ委譲する。
+ * 更新ルール: ボス戦専用カメラ演出の依存生成はここで行い、BossEncounterControllerには生成責務を持たせない。
+ * 更新ルール: 夢のしずく取得はゴール時まで未確定としてRuntimeに保持し、保存処理はStageClearServiceで行う。
  */
 import { Hud } from '../../ui/Hud.js';
 import { DialogueView } from '../../ui/DialogueView.js';
@@ -25,6 +27,7 @@ import { StageCheckpointService } from '../StageCheckpointService.js';
 import { FallRespawnService } from '../FallRespawnService.js';
 import { BalloonRideSystem } from '../BalloonRideSystem.js';
 import { StageScrollController } from '../StageScrollController.js';
+import { BossCameraController } from '../BossCameraController.js';
 import { NanoRideSupport } from '../../actors/nano/NanoRideSupport.js';
 import { NanoRescueEventSystem } from '../NanoRescueEventSystem.js';
 import { StageEventSystem } from '../StageEventSystem.js';
@@ -77,6 +80,7 @@ export async function enterStageRuntime(runtime) {
   runtime.collisionWorld = null;
   runtime.switchTargetSystem.apply(runtime);
   runtime.stageScrollController = new StageScrollController();
+  runtime.bossCameraController = new BossCameraController({ scrollController: runtime.stageScrollController });
   runtime.nanoRideSupport = new NanoRideSupport();
   runtime.balloonRideSystem = new BalloonRideSystem(runtime, {
     scrollController: runtime.stageScrollController,
@@ -95,6 +99,7 @@ export async function enterStageRuntime(runtime) {
   runtime.elapsed = runtime.routeProgressBase.elapsed;
   runtime.purified = runtime.routeProgressBase.purified;
   runtime.damageCount = runtime.routeProgressBase.damageCount;
+  runtime.pendingDreamDropStageIds = new Set();
   runtime.flashTimer = 0;
   runtime.restartTimer = 0;
   runtime.pendingNanoRescueTutorial = false;

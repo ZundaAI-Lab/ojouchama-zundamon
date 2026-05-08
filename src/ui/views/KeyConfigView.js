@@ -1,6 +1,6 @@
 /**
  * 責務: キーコンフィグ専用画面のDOMを生成する。
- * 更新ルール: キー入力待ち受け・重複解決・保存処理は KeyConfigScene に残す。
+ * 更新ルール: キー入力待ち受け・重複解決・保存処理は OptionSettingsPageController / OptionDraftStore に残す。
  * 更新ルール: リサイズ用の画面種別は wrapper class だけでCSSへ渡し、寸法計算はCSSへ集約する。
  */
 import { CONFIGURABLE_KEY_ACTIONS, INPUT_ACTION_LABELS, getKeyDisplayName } from '../../config/controlSettings.js';

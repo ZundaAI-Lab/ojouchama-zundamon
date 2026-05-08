@@ -1,6 +1,6 @@
 /**
  * 責務: オプション画面の設定入力DOMを生成する。
- * 更新ルール: 設定値の検証・保存・プレビュー反映は OptionScene に残し、音量入力はBGM/SEを個別に表示する。
+ * 更新ルール: 設定値の検証・保存・プレビュー反映は OptionSettingsPageController / OptionDraftStore に残し、音量入力はBGM/SEを個別に表示する。
  * 更新ルール: リサイズ用の画面種別は wrapper class だけでCSSへ渡し、寸法計算はCSSへ集約する。
  */
 export class OptionView {

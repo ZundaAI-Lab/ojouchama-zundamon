@@ -2,16 +2,28 @@
  * 責務: ステージクリア時のセーブ反映、SE、リザルト遷移を担当する。
  * 更新ルール: ランク計算の詳細はStageResultCalculatorへ委譲する。
  * 更新ルール: クリア済みステージの再挑戦では、保存・遷移は維持して会話イベントだけを省略する。
+ * 更新ルール: 夢のしずく取得はステージゴール時にだけ確定保存し、通常エリアは取得保留、ボスエリアはゴール到達を獲得扱いにする。
  */
 import { SCENES } from '../config/sceneIds.js';
 import { StageResultCalculator } from './StageResultCalculator.js';
 import { StageRouteProgress } from './StageRouteProgress.js';
+
+function collectDreamDropStageIdsForClear(runtime) {
+  if (runtime.stage.testStage) return [];
+  const ids = new Set(runtime.pendingDreamDropStageIds || []);
+  if (runtime.stage.areaRole === 'boss') ids.add(runtime.stage.id);
+  return [...ids];
+}
 
 export class StageClearService {
   static clear(runtime) {
     if (runtime.clearStarted) return;
     runtime.clearStarted = true;
     runtime.app.input.clearGameplay();
+    const dreamDropStageIds = collectDreamDropStageIdsForClear(runtime);
+    if (dreamDropStageIds.length) {
+      runtime.saveData = runtime.app.save.recordDreamDrops(dreamDropStageIds);
+    }
 
     const nextStageId = runtime.stage.route?.nextStageId;
     runtime.app.audio.playSfx(nextStageId ? 'stage_clear_jingle' : 'route_clear_jingle');
