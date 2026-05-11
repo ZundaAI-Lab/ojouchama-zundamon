@@ -79,9 +79,9 @@ export const ITEM_SFX_DEFS = {
       }
     ]
   },
-  "item_scone": {
-    "id": "item_scone",
-    "name": "スコーン取得",
+  "item_zundamochi": {
+    "id": "item_zundamochi",
+    "name": "ずんだもち取得",
     "gain": 1,
     "voices": [
       {

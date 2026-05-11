@@ -1,39 +1,29 @@
 /*
- * 責務: 小さい画面向けのオープニングカード補正を担当する。
- * 更新ルール: dialogue.css に戻さず、opening.css の後続補正として読み込む。
+ * 責務: 小さい画面向けのオープニングカード補助余白を担当する。
+ * 更新ルール: 文字サイズ・カードサイズは opening-large.css を正とし、ここでは現行表示で残っている補助指定だけを管理する。
  */
 @media (max-height: 620px), (max-width: 860px) {
   .opening-card {
-    width: min(84%, 620px);
-    max-height: min(92%, 330px);
-    padding: 12px 14px;
     border-radius: 20px;
   }
 
   .opening-title {
-    font-size: 18px;
     margin-top: 6px;
     margin-bottom: 4px;
   }
 
   .opening-text {
-    min-height: min(36vh, 126px);
-    padding: 12px 14px;
     border-radius: 20px;
-    font-size: 12.5px;
-    line-height: 1.5;
   }
 
   .opening-text strong {
     min-height: 22px;
     margin-bottom: 5px;
     padding: 3px 10px;
-    font-size: 12px;
   }
 
   .opening-progress {
     margin-top: 6px;
-    font-size: 10px;
   }
 
   .opening-card .menu-actions {

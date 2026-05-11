@@ -2,7 +2,7 @@
  * 責務: ステージ選択カードの一覧密度と選択行補正を担当する。
  * 更新ルール: 会話ウィンドウのスタイルを混ぜず、ステージ選択DOMの見た目だけを追加する。
  */
-/* patch_03: ステージ選択は全ステージを一覧できる2列レイアウトにする */
+/* patch_03: ステージ選択は garden-board.css の中央ボード表示を正とし、ここでは個別の余白補助だけを管理する */
 .garden-screen {
   padding: 5px;
 }
@@ -35,7 +35,6 @@
   display: none;
 }
 .stage-card .stage-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
 }
 .stage-card .stage-select {

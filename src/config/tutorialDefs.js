@@ -115,7 +115,7 @@ export const TUTORIAL_ENTRIES = [
     ],
     body: 'HP、豆コイン、ティーカップ、経過時間を確認できるの。アクションが使えない時は、表示や状況も確認するの。',
     notes: [
-      'スコーンは回復、豆コインはおかいもの、ティーカップはお茶に使います。',
+      'ずんだもちは回復、豆コインはおかいもの、ティーカップはお茶に使います。',
     ],
   },
   {
@@ -221,15 +221,15 @@ export const TUTORIAL_ENTRIES = [
     title: 'なのちゃんの魔法援護',
     imageKey: 'npc_teacup_fairy_shine',
     bindings: [
-      { text: 'まほうの芽 入手後' },
+      { text: 'まほうのリボン 入手後' },
     ],
-    body: 'まほうの芽を持っていると、なのちゃんが近くの相手へ時々まほうで援護してくれるの。',
+    body: 'まほうのリボンを持っていると、なのちゃんが近くの相手へ時々まほうで援護してくれるの。',
     notes: [
       '住民やボスが近くにいる時だけ発動します。',
       '帰還中は復帰を優先します。',
     ],
     requiredStoryFlag: 'nanoJoined',
-    requiredUpgrade: 'nanoMagicBud',
+    requiredUpgrade: 'nanoMagicRibbon',
   },
   {
     id: 'nano-sugar',
@@ -245,22 +245,22 @@ export const TUTORIAL_ENTRIES = [
       '魔法援護を入手してから確認できる強化です。',
     ],
     requiredStoryFlag: 'nanoJoined',
-    requiredUpgrades: ['nanoMagicBud', 'nanoSugar'],
+    requiredUpgrades: ['nanoMagicRibbon', 'nanoSugar'],
   },
   {
-    id: 'nano-ribbon',
+    id: 'nano-powder',
     topic: 'nano',
     group: '強化',
     title: '援護間隔短縮',
     imageKey: 'npc_teacup_fairy_worry',
     bindings: [
-      { text: 'なのだリボン 入手後' },
+      { text: 'なのだパウダー 入手後' },
     ],
-    body: 'なのだリボンを持っていると、なのちゃんが援護できるまでの間隔が短くなるの。',
+    body: 'なのだパウダーを持っていると、なのちゃんが援護できるまでの間隔が短くなるの。',
     notes: [
       '魔法援護を入手してから確認できる強化です。',
     ],
     requiredStoryFlag: 'nanoJoined',
-    requiredUpgrades: ['nanoMagicBud', 'nanoRibbon'],
+    requiredUpgrades: ['nanoMagicRibbon', 'nanoPowder'],
   },
 ];

@@ -186,7 +186,7 @@ export const stageEditorTests = [
   }),
 
   createTest('stageEditor', '実画像表示対象の画像キーと当たり判定メトリクスを解決できる', ({ equal, assert }) => {
-    equal(getEditorObjectImageKey('items', { kind: 'scone' }), 'icon_scone');
+    equal(getEditorObjectImageKey('items', { kind: 'zundamochi' }), 'icon_zundamochi');
     equal(getEditorObjectImageKey('residents', { type: 'toyKnight' }), 'resident_toy_knight');
     equal(getEditorObjectImageKey('doors', {}), 'door_bow');
     equal(getEditorObjectImageKey('points', { key: 'goal', variant: 'sign_arrow' }), 'goal_sign_arrow');

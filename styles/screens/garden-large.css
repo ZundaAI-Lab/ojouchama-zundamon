@@ -72,6 +72,11 @@
   height: clamp(72px, 6.4vw, 98px);
 }
 
+.shop-item-icon {
+  width: clamp(72px, 6.2vw, 96px);
+  height: clamp(72px, 6.2vw, 96px);
+}
+
 .stage-select strong,
 .stage-card .stage-select strong,
 .upgrade-select strong {

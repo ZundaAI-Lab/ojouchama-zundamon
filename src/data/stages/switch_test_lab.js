@@ -83,7 +83,7 @@ const stage = {
     { x: 392, y: 240, kind: 'coin' },
     { x: 640, y: 232, kind: 'coin' },
     { x: 944, y: 240, kind: 'teacup' },
-    { x: 1216, y: 240, kind: 'scone' },
+    { x: 1216, y: 240, kind: 'zundamochi' },
     { x: 1840, y: 240, kind: 'coin' },
     { x: 1968, y: 256, kind: 'largeBeanCoin' },
   ],

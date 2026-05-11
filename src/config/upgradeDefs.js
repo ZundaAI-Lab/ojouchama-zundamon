@@ -11,30 +11,35 @@ export const UPGRADE_DEFS = {
     desc: '最大HP +1',
     max: 2,
     cost: [8, 14],
+    icon: 'icon_heart_brooch',
   },
   magic: {
-    label: 'お豆のステッキ',
+    label: '枝豆のステッキ',
     desc: '魔法の射程と威力を強化',
     max: 2,
     cost: [10, 18],
+    icon: 'icon_bean_staff',
   },
   bow: {
-    label: '上品なリボン',
+    label: 'レースの手袋',
     desc: 'おじぎの待ち時間を短縮',
     max: 2,
     cost: [8, 16],
+    icon: 'icon_lace_gloves',
   },
   tea: {
     label: 'ロイヤルティーセット',
     desc: 'ティータイム回復量を強化',
     max: 2,
     cost: [9, 17],
+    icon: 'icon_royal_tea_set',
   },
-  nanoMagicBud: {
-    label: 'まほうの芽',
+  nanoMagicRibbon: {
+    label: 'まほうのリボン',
     desc: 'なのちゃんが時々まほうで援護します',
     max: 1,
     cost: [8],
+    icon: 'icon_magic_ribbon',
     requiresStoryFlag: 'nanoJoined',
   },
   nanoSugar: {
@@ -42,13 +47,15 @@ export const UPGRADE_DEFS = {
     desc: 'なのちゃんの援護まほうの威力 +1',
     max: 1,
     cost: [12],
+    icon: 'icon_zunda_sugar',
     requiresStoryFlag: 'nanoJoined',
   },
-  nanoRibbon: {
-    label: 'なのだリボン',
+  nanoPowder: {
+    label: 'なのだパウダー',
     desc: 'なのちゃんの援護まほうの発射間隔を短縮',
     max: 1,
     cost: [12],
+    icon: 'icon_nanoda_powder',
     requiresStoryFlag: 'nanoJoined',
   },
 };

@@ -297,6 +297,46 @@ const stage = {
       "active": false,
       "group": "h",
       "activeDuration": 0
+    },
+    {
+      "x": 1496,
+      "y": 208,
+      "w": 120,
+      "h": 16,
+      "kind": "ribbonBridge",
+      "active": false,
+      "group": "e",
+      "activeDuration": 0
+    },
+    {
+      "x": 1368,
+      "y": 168,
+      "w": 120,
+      "h": 16,
+      "kind": "ribbonBridge",
+      "active": false,
+      "group": "f",
+      "activeDuration": 0
+    },
+    {
+      "x": 1224,
+      "y": 136,
+      "w": 120,
+      "h": 16,
+      "kind": "ribbonBridge",
+      "active": false,
+      "group": "g",
+      "activeDuration": 0
+    },
+    {
+      "x": 1080,
+      "y": 96,
+      "w": 120,
+      "h": 16,
+      "kind": "ribbonBridge",
+      "active": false,
+      "group": "h",
+      "activeDuration": 0
     }
   ],
   "residents": [
@@ -374,10 +414,10 @@ const stage = {
     {
       "x": 1024,
       "y": 224,
-      "kind": "scone"
+      "kind": "zundamochi"
     },
     {
-      "x": 1280,
+      "x": 1560,
       "y": 112,
       "kind": "teacup"
     },
@@ -421,6 +461,12 @@ const stage = {
       "x": 2568,
       "y": 64,
       "kind": "coin"
+    },
+    {
+      "x": 912,
+      "y": 40,
+      "kind": "dreamDrop",
+      "groupId": ""
     }
   ],
   "decorations": [
@@ -443,7 +489,7 @@ const stage = {
       "color": "rgba(255,255,255,0.24)"
     },
     {
-      "x": 1344,
+      "x": 1200,
       "y": 144,
       "r": 9,
       "color": "rgba(255,196,224,0.26)"

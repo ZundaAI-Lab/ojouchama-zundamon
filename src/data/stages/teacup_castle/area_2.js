@@ -272,7 +272,7 @@ const stage = {
     {
       "x": 1576,
       "y": 152,
-      "kind": "scone"
+      "kind": "zundamochi"
     },
     {
       "x": 1152,
@@ -314,6 +314,12 @@ const stage = {
       "x": 1184,
       "y": 288,
       "kind": "coin"
+    },
+    {
+      "x": 2088,
+      "y": 48,
+      "kind": "dreamDrop",
+      "groupId": ""
     }
   ],
   "decorations": [

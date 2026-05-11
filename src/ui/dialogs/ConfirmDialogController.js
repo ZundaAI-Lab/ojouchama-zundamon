@@ -40,14 +40,24 @@ export class ConfirmDialogController {
     this.root.innerHTML = `
       <div class="confirm-dialog-card panel" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message">
         <div class="confirm-dialog-mark" aria-hidden="true">?</div>
-        <h1 class="confirm-dialog-title" id="confirm-dialog-title">${title}</h1>
+        <h1 class="confirm-dialog-title" id="confirm-dialog-title"></h1>
         <div class="confirm-dialog-message" id="confirm-dialog-message"></div>
         <div class="confirm-dialog-actions">
-          <button class="secondary-btn confirm-dialog-button" data-confirm-result="cancel" type="button">${cancelLabel}</button>
-          <button class="primary-btn confirm-dialog-button${danger ? ' confirm-dialog-danger-btn' : ''}" data-confirm-result="ok" type="button">${confirmLabel}</button>
+          <button class="secondary-btn confirm-dialog-button" data-confirm-result="cancel" type="button"></button>
+          <button class="primary-btn confirm-dialog-button" data-confirm-result="ok" type="button"></button>
         </div>
       </div>
     `;
+
+    const titleNode = this.root.querySelector('.confirm-dialog-title');
+    titleNode.textContent = `${title}`;
+
+    const cancelButton = this.root.querySelector('[data-confirm-result="cancel"]');
+    cancelButton.textContent = `${cancelLabel}`;
+
+    const confirmButton = this.root.querySelector('[data-confirm-result="ok"]');
+    confirmButton.textContent = `${confirmLabel}`;
+    confirmButton.classList.toggle('confirm-dialog-danger-btn', !!danger);
 
     const messageNode = this.root.querySelector('.confirm-dialog-message');
     for (const line of normalizeMessage(message)) {

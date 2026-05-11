@@ -166,7 +166,7 @@ const stage = {
     {
       x: 160,
       y: 288,
-      kind: "scone"
+      kind: "zundamochi"
     }
   ],
   decorations: [

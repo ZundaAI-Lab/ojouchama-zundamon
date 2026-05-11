@@ -18,10 +18,10 @@ const DEBUG_PROGRESS_FLAG_HANDLERS = Object.freeze({
     isChecked: save => !!save.storyFlags?.nanoJoined,
     apply: (app, checked) => app.save.setStoryFlag('nanoJoined', checked),
   },
-  nanoMagicBud: {
-    label: 'まほうの芽入手',
-    isChecked: save => (save.upgrades?.nanoMagicBud || 0) > 0,
-    apply: (app, checked) => app.save.setUpgradeLevel('nanoMagicBud', checked ? 1 : 0),
+  nanoMagicRibbon: {
+    label: 'まほうのリボン入手',
+    isChecked: save => (save.upgrades?.nanoMagicRibbon || 0) > 0,
+    apply: (app, checked) => app.save.setUpgradeLevel('nanoMagicRibbon', checked ? 1 : 0),
   },
   stagesCleared: {
     label: 'ステージクリア',

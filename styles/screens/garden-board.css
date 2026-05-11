@@ -112,6 +112,13 @@
   height: clamp(56px, 6.2vw, 78px);
 }
 
+.shop-item-icon {
+  width: clamp(58px, 6vw, 78px);
+  height: clamp(58px, 6vw, 78px);
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
 .stage-select-body,
 .upgrade-select-body {
   flex: 1;
@@ -123,6 +130,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.stage-select-main > strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-select-main > em {
+  flex: 0 0 auto;
 }
 
 .stage-select strong,

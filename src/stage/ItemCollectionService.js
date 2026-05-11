@@ -9,7 +9,7 @@ import { addStageTeacups } from './StageTeacupInventory.js';
 const ITEM_SFX_BY_KIND = Object.freeze({
   coin: 'item_coin',
   largeBeanCoin: 'item_large_coin',
-  scone: 'item_scone',
+  zundamochi: 'item_zundamochi',
   invitation: 'item_teacup',
   teacup: 'item_teacup',
   dreamDrop: 'item_dream_drop',

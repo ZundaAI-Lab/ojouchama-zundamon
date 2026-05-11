@@ -38,6 +38,12 @@ export class ShopView {
   }
 
 
+  createItemIcon(iconKey, alt) {
+    const src = this.app.assets.getImage(iconKey)?.src;
+    if (!src) return '';
+    return `<img class="shop-item-icon" src="${src}" alt="${alt}">`;
+  }
+
   createShopItemButton({ key, def, save }) {
     const owned = key === 'teacup' ? save.teacups : 0;
     const maxed = owned >= def.max;
@@ -46,6 +52,7 @@ export class ShopView {
     row.disabled = maxed || save.totalCoins < def.cost;
     row.dataset.shopItemKey = key;
     row.innerHTML = `
+      ${this.createItemIcon(def.icon, `${def.label}のアイコン`)}
       <div class="upgrade-select-body">
         <div class="stage-select-main">
           <strong>${def.label} ${owned}/${def.max}</strong>
@@ -63,6 +70,7 @@ export class ShopView {
     row.disabled = maxed || save.totalCoins < cost;
     row.dataset.upgradeKey = key;
     row.innerHTML = `
+      ${this.createItemIcon(def.icon, `${def.label}のアイコン`)}
       <div class="upgrade-select-body">
         <div class="stage-select-main">
           <strong>${def.label} Lv.${level}/${def.max}</strong>

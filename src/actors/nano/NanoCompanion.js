@@ -80,13 +80,13 @@ export class NanoCompanion extends Actor {
 
   getAutoShotTuning(runtime) {
     const upgrades = runtime?.saveData?.upgrades || {};
-    const unlocked = (upgrades.nanoMagicBud || 0) > 0;
+    const unlocked = (upgrades.nanoMagicRibbon || 0) > 0;
     const sugarLevel = upgrades.nanoSugar || 0;
-    const ribbonLevel = upgrades.nanoRibbon || 0;
+    const powderLevel = upgrades.nanoPowder || 0;
     return {
       unlocked,
       damage: NANO_CONFIG.AUTO_SHOT_DAMAGE + sugarLevel,
-      cooldown: Math.max(1.65, NANO_CONFIG.AUTO_SHOT_COOLDOWN - ribbonLevel * 0.75),
+      cooldown: Math.max(1.65, NANO_CONFIG.AUTO_SHOT_COOLDOWN - powderLevel * 0.75),
     };
   }
 

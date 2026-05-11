@@ -190,7 +190,7 @@ const stage = {
     {
       x: 616,
       y: 224,
-      kind: "scone"
+      kind: "zundamochi"
     },
     {
       x: 1072,
@@ -215,7 +215,7 @@ const stage = {
     {
       x: 2144,
       y: 288,
-      kind: "scone"
+      kind: "zundamochi"
     }
   ],
   decorations: [

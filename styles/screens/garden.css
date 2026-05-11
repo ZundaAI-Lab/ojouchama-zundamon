@@ -137,6 +137,13 @@
   flex: 0 0 auto;
 }
 
+.shop-item-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
 .stage-select strong,
 .upgrade-select strong {
   display: block;

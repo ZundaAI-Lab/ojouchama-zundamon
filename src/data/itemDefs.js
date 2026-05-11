@@ -26,9 +26,9 @@ export const ITEM_DEFS = {
     hitboxSize: 28,
     renderSize: 36,
   },
-  scone: {
-    label: 'スコーン',
-    imageKey: 'icon_scone',
+  zundamochi: {
+    label: 'ずんだもち',
+    imageKey: 'icon_zundamochi',
     effect: 'heal',
     value: 1,
     hitboxSize: 14,

@@ -587,6 +587,16 @@ export class StageEditorApp {
     for (const key of PLATFORM_KIND_RESET_KEEP_KEYS) {
       if (object[key] !== undefined) nextObject[key] = object[key];
     }
+    return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('platforms', nextObject));
+  }
+
+  applyFieldDefaults(object, fieldGroups) {
+    const nextObject = cloneEditorValue(object);
+    for (const field of flattenFieldGroups(fieldGroups)) {
+      if (field.defaultValue === undefined) continue;
+      if (getPathValue(nextObject, field.key) !== undefined) continue;
+      setPathValue(nextObject, field.key, cloneEditorValue(field.defaultValue));
+    }
     return nextObject;
   }
 

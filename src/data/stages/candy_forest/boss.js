@@ -152,7 +152,7 @@ const stage = {
     {
       "x": 176,
       "y": 288,
-      "kind": "scone"
+      "kind": "zundamochi"
     }
   ],
   "decorations": [
