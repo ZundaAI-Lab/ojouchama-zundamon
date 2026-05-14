@@ -13,6 +13,7 @@ export class AudioEditorPreviewBridge {
     this.sfxGain = null;
     this.bgmPlayer = null;
     this.sfxPlayer = null;
+    this.sfxStopTimer = 0;
     this.updateTimer = 0;
     this.bgmOneShotTimer = 0;
   }
@@ -23,13 +24,11 @@ export class AudioEditorPreviewBridge {
     this.ctx = new AudioCtor();
     this.master = this.ctx.createGain();
     this.bgmGain = this.ctx.createGain();
-    this.sfxGain = this.ctx.createGain();
     this.master.gain.value = 0.82;
     this.bgmGain.gain.value = 0.78;
-    this.sfxGain.gain.value = 0.88;
     this.bgmGain.connect(this.master);
-    this.sfxGain.connect(this.master);
     this.master.connect(this.ctx.destination);
+    this.recreateSfxGain(0);
     this.bgmPlayer = new BgmTrackPlayer(() => this.ctx, () => this.bgmGain);
     this.sfxPlayer = new SfxRecipePlayer(() => this.ctx);
   }
@@ -39,15 +38,38 @@ export class AudioEditorPreviewBridge {
     this.ctx.resume?.();
   }
 
+  recreateSfxGain(fadeSeconds = 0.04) {
+    const oldGain = this.sfxGain;
+    if (this.sfxStopTimer) {
+      window.clearTimeout(this.sfxStopTimer);
+      this.sfxStopTimer = 0;
+    }
+    if (oldGain && this.ctx) {
+      const at = this.ctx.currentTime;
+      try {
+        oldGain.gain.cancelScheduledValues(at);
+        oldGain.gain.setValueAtTime(Math.max(0.0001, oldGain.gain.value || 0.0001), at);
+        oldGain.gain.exponentialRampToValueAtTime(0.0001, at + fadeSeconds);
+      } catch {}
+      this.sfxStopTimer = window.setTimeout(() => {
+        try { oldGain.disconnect(); } catch {}
+        this.sfxStopTimer = 0;
+      }, (fadeSeconds + 0.04) * 1000);
+    }
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.gain.value = 0.88;
+    this.sfxGain.connect(this.master);
+  }
+
   makeSectionPreviewTrack(track, sectionName) {
     if (!sectionName || !track?.sections?.[sectionName]) return track;
     const bars = Number(track.sectionBars?.[sectionName] ?? track.introBars ?? 4) || 4;
     return {
       ...track,
       id: `${track.id}__${sectionName}__preview`,
-      introBars: bars,
-      sectionBars: { intro: bars },
-      sections: { intro: track.sections[sectionName] },
+      introBars: 0,
+      sectionBars: { A: bars },
+      sections: { A: track.sections[sectionName] },
     };
   }
 
@@ -59,11 +81,11 @@ export class AudioEditorPreviewBridge {
     const previewBars = Math.max(8, Math.ceil((eventDuration + beatsPerBar) / beatsPerBar));
     return {
       ...track,
-      id: `${track.id}__${sectionName}__event_${eventIndex}__preview_${Date.now()}`,
-      introBars: previewBars,
-      sectionBars: { intro: previewBars },
+      id: `${track.id}__${sectionName}__event_${eventIndex}__preview`,
+      introBars: 0,
+      sectionBars: { A: previewBars },
       sections: {
-        intro: [{
+        A: [{
           ...event,
           t: 0,
           n: Array.isArray(event.n) ? [...event.n] : event.n,
@@ -122,6 +144,11 @@ export class AudioEditorPreviewBridge {
     this.stopUpdateLoop();
   }
 
+  stopSfx() {
+    if (!this.ctx || !this.master) return;
+    this.recreateSfxGain(0.035);
+  }
+
   playSfx(definition) {
     this.resume();
     this.sfxPlayer.play(definition, this.sfxGain, this.ctx.currentTime);
@@ -129,5 +156,6 @@ export class AudioEditorPreviewBridge {
 
   stop() {
     this.stopBgm();
+    this.stopSfx();
   }
 }

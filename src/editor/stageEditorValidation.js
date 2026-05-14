@@ -5,6 +5,7 @@
  * 更新ルール: ゴール種類の妥当性だけを検証し、サイズ定義はgoalDefsへ委譲する。
  * 更新ルール: 足場のactiveDurationは0以上の秒数だけを許可し、0はRuntime側で無制限として扱う。
  * 更新ルール: 風足場は kind: 'wind' と windStyle の組み合わせだけを許可する。
+ * 更新ルール: スイッチ参照検証はSwitchGimmickSystemの出力ID解決順（switchId -> setId/groupId/id）に合わせる。
  */
 import { STAGE_VIEW } from '../config/view.js';
 import { STAGE_ARRAY_FIELDS, STAGE_SCHEMA_KEYS } from '../data/stageSchema.js';
@@ -26,6 +27,8 @@ const ITEM_KIND_SET = new Set(Object.keys(ITEM_DEFS));
 const RESIDENT_TYPE_SET = new Set(Object.keys(RESIDENT_DEFS));
 const REQUIRED_RECT_FIELDS = ['x', 'y', 'w', 'h'];
 const SPECIAL_EVENT_KIND_SET = new Set(['nanoRescue', 'residentReinforcement', 'gust', 'deactivateGroup']);
+const SWITCH_GIMMICK_KIND_SET = new Set(['teaBell', 'glassRose', 'rainbowBubble', 'magicCandelabra', 'ribbonSwitch']);
+const SWITCH_TRIGGER_SOURCES = Object.freeze(['player', 'nano', 'magic']);
 
 function isFiniteNumber(value) {
   return Number.isFinite(value);
@@ -71,8 +74,13 @@ function checkUniqueIds(messages, values, path) {
   }
 }
 
+function getSwitchGimmickOutputId(gimmick = {}) {
+  if (gimmick.kind === 'ribbonSwitch') return '';
+  return gimmick.switchId || gimmick.setId || gimmick.groupId || gimmick.id || '';
+}
+
 function collectDefinedSwitchIds(stage) {
-  return new Set(stage.switchGimmicks.map(item => item.switchId).filter(Boolean));
+  return new Set(stage.switchGimmicks.map(getSwitchGimmickOutputId).filter(Boolean));
 }
 
 function collectInvitationClockDoorIds(stage) {
@@ -139,6 +147,36 @@ function checkDeactivateGroupEvent(messages, eventObject, path) {
   if (!eventObject.targetGroupId && !eventObject.targetGroup) add(messages, 'error', '対象グループIDを指定してください。', `${path}.targetGroupId`);
 }
 
+function hasRibbonBridgeGroup(stage, group) {
+  return (stage.platforms || []).some(platform => platform.kind === PLATFORM_KINDS.RIBBON_BRIDGE && (platform.group || 'default') === group);
+}
+
+function checkNonNegativeNumber(messages, object, key, path) {
+  if (object[key] == null) return;
+  if (!isFiniteNumber(object[key]) || object[key] < 0) add(messages, 'error', `${key} は0以上の数値にしてください。`, `${path}.${key}`);
+}
+
+function checkPositiveInteger(messages, object, key, path) {
+  if (object[key] == null) return;
+  if (!Number.isInteger(object[key]) || object[key] < 1) add(messages, 'error', `${key} は1以上の整数にしてください。`, `${path}.${key}`);
+}
+
+function checkSwitchGimmick(messages, stage, gimmick, path) {
+  checkRect(messages, stage, gimmick, path);
+  if (!SWITCH_GIMMICK_KIND_SET.has(gimmick.kind)) add(messages, 'error', `未定義のスイッチkindです: ${gimmick.kind}`, `${path}.kind`);
+  checkTriggerBy(messages, gimmick, path, SWITCH_TRIGGER_SOURCES);
+  if (gimmick.kind === 'ribbonSwitch') {
+    const group = gimmick.targetGroup || gimmick.group || 'default';
+    if (!group) add(messages, 'error', 'リボンスイッチはtargetGroupを指定してください。', `${path}.targetGroup`);
+    else if (!hasRibbonBridgeGroup(stage, group)) add(messages, 'warning', `対象のリボン橋グループがありません: ${group}`, `${path}.targetGroup`);
+    return;
+  }
+  const outputId = getSwitchGimmickOutputId(gimmick);
+  if (!outputId) add(messages, 'error', 'スイッチ出力ID（switchId/setId/groupId/idのいずれか）を指定してください。', path);
+  checkPositiveInteger(messages, gimmick, 'required', path);
+  checkNonNegativeNumber(messages, gimmick, 'duration', path);
+  checkNonNegativeNumber(messages, gimmick, 'litDuration', path);
+}
 
 
 function checkBalloonRide(messages, stage, ride, path) {
@@ -285,7 +323,7 @@ export function validateEditorStage(stage) {
   });
   stage.doors.forEach((door, index) => checkDoor(messages, stage, door, `doors[${index}]`));
   stage.switchTargets.forEach((target, index) => checkRect(messages, stage, target, `switchTargets[${index}]`));
-  stage.switchGimmicks.forEach((gimmick, index) => checkRect(messages, stage, gimmick, `switchGimmicks[${index}]`));
+  stage.switchGimmicks.forEach((gimmick, index) => checkSwitchGimmick(messages, stage, gimmick, `switchGimmicks[${index}]`));
   stage.balloonRides.forEach((ride, index) => checkBalloonRide(messages, stage, ride, `balloonRides[${index}]`));
   stage.specialEvents.forEach((eventObject, index) => {
     const path = `specialEvents[${index}]`;
@@ -338,14 +376,26 @@ export function validateEditorStage(stage) {
     if (resident.rideId && !balloonRideIds.has(resident.rideId)) add(messages, 'error', `参照先balloonRide.idがありません: ${resident.rideId}`, `residents[${index}].rideId`);
   }
 
-  let lastEnd = 0;
+  const sortableAreas = [];
   for (const [index, area] of stage.areas.entries()) {
     const path = `areas[${index}]`;
     if (!isFiniteNumber(area.startX) || !isFiniteNumber(area.endX)) add(messages, 'error', 'area.startX/endX は数値にしてください。', path);
+    else sortableAreas.push({ ...area, index });
     if (area.startX > area.endX) add(messages, 'error', 'area.startX が endX を超えています。', path);
-    if (index > 0 && area.startX < lastEnd) add(messages, 'warning', 'areaの範囲が前エリアと重なっています。', path);
     if (area.respawn) checkPoint(messages, stage, area.respawn, `${path}.respawn`);
-    lastEnd = area.endX;
+  }
+  sortableAreas.sort((a, b) => a.startX - b.startX);
+  if (sortableAreas.length) {
+    if (sortableAreas[0].startX > 0) add(messages, 'warning', '最初のareaがx=0から始まっていません。', `areas[${sortableAreas[0].index}]`);
+    let lastEnd = sortableAreas[0].endX;
+    for (let i = 1; i < sortableAreas.length; i += 1) {
+      const area = sortableAreas[i];
+      const path = `areas[${area.index}]`;
+      if (area.startX < lastEnd) add(messages, 'warning', 'areaの範囲が前エリアと重なっています。', path);
+      if (area.startX > lastEnd) add(messages, 'warning', `前エリアとの間にgapがあります: ${lastEnd}-${area.startX}`, path);
+      lastEnd = Math.max(lastEnd, area.endX);
+    }
+    if (lastEnd < stage.width) add(messages, 'warning', `最後のareaがステージ終端まで届いていません: ${lastEnd}-${stage.width}`, 'areas');
   }
 
   if (stage.areaRole !== 'boss' && stage.boss) add(messages, 'warning', 'boss以外のareaRoleにボスが配置されています。', 'boss');

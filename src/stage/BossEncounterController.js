@@ -5,8 +5,10 @@
  * 更新ルール: ボス戦BGMの選択はBGM定義の解決関数に委譲し、このControllerでは戦闘状態の切替だけを行う。
  * 更新ルール: ボス登場時はRuntimeへステージBGMフェードアウトだけ通知し、実際の音量制御はAudioSystemへ委譲する。
  * 更新ルール: ボス戦前後のカメラ演出はBossCameraControllerへ委譲し、このControllerでは開始・完了の状態遷移だけを管理する。
+ * 更新ルール: ボス演出中のプレイヤー表示状態も、物理移動後に更新する。
  */
 import { GAME_VIEW } from '../config/view.js';
+import { PLAYER_CONFIG } from '../config/playerConfig.js';
 import { RewardCoinDropService } from './RewardCoinDropService.js';
 import { resolveBossBgmId, resolveStageBgmId } from '../data/audio/bgmTrackDefs.js';
 import { BOSS_BATTLE_CAMERA_DURATION } from './BossCameraController.js';
@@ -250,7 +252,9 @@ export class BossEncounterController {
     runtime.physics.moveActor(runtime.player, dt, collisionWorld.playerSolids, {
       useSlopeSurface: true,
       slopeSurfaces: collisionWorld.slopeSurfaces,
+      stepUpHeight: PLAYER_CONFIG.STEP_UP_HEIGHT,
     });
+    runtime.player.updateVisualState();
   }
 
   static startAppearance(runtime) {
@@ -346,9 +350,9 @@ export class BossEncounterController {
 
     if (!runtime.bossRewardDropped) {
       runtime.bossRewardDropped = true;
-      RewardCoinDropService.spawn(runtime, runtime.boss, 5);
+      const stageNumber = (Number.isInteger(runtime.stage?.worldIndex) ? runtime.stage.worldIndex : 0) + 1;
+      RewardCoinDropService.spawn(runtime, runtime.boss, stageNumber * 2 + 3);
       runtime.app.audio.playSfx('coin');
-      runtime.hud.showBanner('ごほうびの豆コインがこぼれたの！');
     }
   }
 

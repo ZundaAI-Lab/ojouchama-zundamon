@@ -2,6 +2,7 @@
  * 責務: プレイヤー本体の状態統合、移動更新、被弾・回復・各アクション部品の接続を担当する。
  * 更新ルール: 入力解釈・魔法・おじぎ・ティータイムの詳細は専用クラスへ分離し、Player肥大化を避ける。なのちゃん関連は演出タイマーと入力抑止の受け口に限定する。
  * 更新ルール: 地面・壁・アイテム取得はgetBounds、被弾はgetDamageBoundsで用途別に公開する。
+ * 更新ルール: 表示状態は物理・足場効果でonGround/vyが確定した後にupdateVisualStateで更新する。
  */
 import { Actor } from '../Actor.js';
 import { PLAYER_CONFIG } from '../../config/playerConfig.js';
@@ -31,6 +32,7 @@ export class Player extends Actor {
     this.facing = 1;
     this.controller = new PlayerController(input);
     this.stateMachine = new PlayerStateMachine(this);
+    this.lastVisualCommand = { moveX: 0 };
     this.magic = new PlayerMagic(this);
     this.bow = new PlayerBowAction(this);
     this.tea = new PlayerTeaTime(this);
@@ -88,6 +90,7 @@ export class Player extends Actor {
 
   update(dt, stageScene) {
     const cmd = this.controller.read(dt);
+    this.lastVisualCommand = cmd;
     if (cmd.moveX !== 0) this.facing = cmd.moveX;
 
     this.magic.update(dt);
@@ -134,7 +137,10 @@ export class Player extends Actor {
     if (cmd.teaPressed && this.bow.activeTimer <= 0 && this.onGround) this.tea.tryUse(stageScene);
 
     this.vy = Math.min(this.vy + PLAYER_CONFIG.GRAVITY * dt, PLAYER_CONFIG.MAX_FALL_SPEED);
-    this.stateMachine.update(cmd);
+  }
+
+  updateVisualState(command = this.lastVisualCommand) {
+    this.stateMachine.update(command || { moveX: 0 });
   }
 
   settleForEvent(dt) {
@@ -148,8 +154,8 @@ export class Player extends Actor {
     this.jumpBufferTimer = 0;
     this.coyoteTimer = this.onGround ? PLAYER_CONFIG.COYOTE_TIME : Math.max(0, this.coyoteTimer - dt);
     this.vx = 0;
+    this.lastVisualCommand = { moveX: 0 };
     this.vy = Math.min(this.vy + PLAYER_CONFIG.GRAVITY * dt, PLAYER_CONFIG.MAX_FALL_SPEED);
-    this.stateMachine.update({ moveX: 0 });
   }
 
   isDamageInvincible() {

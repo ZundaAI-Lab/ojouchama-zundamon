@@ -4,12 +4,13 @@
  * 更新ルール: 種類別フィールドは、現行Runtimeが参照するプロパティだけを定義し、未実装の新規パラメータは追加しない。
  * 更新ルール: page/wishLeaf/ribbonBridgeのactiveDurationはPlatformGimmickSystemが参照し、0秒を無制限として扱う。
  * 更新ルール: 風足場は kind: 'wind' と windStyle で配置し、効果は共通のWind系として扱う。
+ * 更新ルール: 追加プリセットで作れる種類は、種類変更時の再構築にも使うため、実行時に必要な既定フィールドを欠かさない。
  */
 import { PLATFORM_KINDS } from '../data/platformDefs.js';
 import { ITEM_DEFS } from '../data/itemDefs.js';
 import { RESIDENT_DEFS } from '../data/residentDefs.js';
 import { ASSET_MANIFEST } from '../data/assetManifest.js';
-import { BGM_OPTIONS } from '../data/audio/audioCatalog.js';
+import { BGM_OPTIONS } from '../data/audio/bgmCatalog.js';
 import { PROJECTILE_CATALOG } from '../actors/projectile/ProjectileCatalog.js';
 import { DOOR_OPEN_CONDITIONS, DOOR_OPEN_CONDITION_OPTIONS } from '../data/doorDefs.js';
 import { VINE_STYLE_DEFS, VINE_STYLE_ORDER } from '../config/vineStyleDefs.js';
@@ -48,6 +49,32 @@ const AIM_MODE_OPTIONS = Object.freeze(['towardTargetX', 'towardTargetUpArc', 'h
 const VINE_STYLE_OPTIONS = Object.freeze(VINE_STYLE_ORDER.map(value => ({ value, label: VINE_STYLE_DEFS[value].label })));
 const PLATFORM_STYLE_OPTIONS = Object.freeze(PLATFORM_STYLE_ORDER.map(value => ({ value, label: PLATFORM_STYLE_DEFS[value].label })));
 const WIND_STYLE_OPTIONS = Object.freeze(WIND_STYLE_ORDER.map(value => ({ value, label: WIND_STYLE_DEFS[value].label })));
+const SWITCH_GIMMICK_KIND_OPTIONS = Object.freeze([
+  { value: 'teaBell', label: 'お茶会ベル' },
+  { value: 'glassRose', label: 'ガラスのローズ' },
+  { value: 'rainbowBubble', label: '虹色シャボン' },
+  { value: 'magicCandelabra', label: '魔法燭台' },
+  { value: 'ribbonSwitch', label: 'リボンスイッチ' },
+]);
+const SWITCH_TARGET_KIND_OPTIONS = Object.freeze([
+  { value: 'teaTable', label: 'テーブル' },
+  { value: 'teaChair', label: '椅子' },
+]);
+const SWITCH_TARGET_VARIANT_OPTIONS = Object.freeze([
+  { value: 'pink', label: 'ピンク' },
+  { value: 'green', label: 'グリーン' },
+  { value: 'purple', label: 'パープル' },
+  { value: 'heart', label: 'ハート' },
+  { value: 'wing', label: '羽根' },
+  { value: 'long', label: 'ロングテーブル' },
+  { value: 'sidePink', label: 'サイドピンク' },
+  { value: 'sideGreen', label: 'サイドグリーン' },
+  { value: 'candle', label: 'キャンドル' },
+]);
+const BALLOON_SCROLL_MODE_OPTIONS = Object.freeze([
+  { value: 'horizontal', label: '横スクロール' },
+  { value: 'verticalUp', label: '上昇スクロール' },
+]);
 
 const numberField = (key, label, options = {}) => ({ key, label, type: 'number', ...options });
 const textField = (key, label, options = {}) => ({ key, label, type: 'text', ...options });
@@ -115,11 +142,13 @@ export const EDITOR_OBJECT_PRESETS = Object.freeze({
   switchGimmicks: [
     { label: 'お茶会ベル', value: { id: 'switch_1', kind: 'teaBell', groupId: '', x: 190, y: 178, w: 42, h: 48, switchId: 'switch_1', duration: 4, triggerBy: ['player', 'nano', 'magic'] } },
     { label: 'ガラスのローズ', value: { id: 'rose_1', kind: 'glassRose', groupId: '', setId: 'rose_set_1', x: 626, y: 178, w: 40, h: 54, switchId: 'rose_all', color: 'red', required: 3, litDuration: 0 } },
-    { label: '虹色シャボン', value: { id: 'bubble_1', kind: 'rainbowBubble', groupId: '', x: 1260, y: 172, w: 40, h: 40, switchId: 'bubble_pair', duration: 5 } },
+    { label: '虹色シャボン', value: { id: 'bubble_1', kind: 'rainbowBubble', groupId: '', x: 1260, y: 172, w: 40, h: 40, switchId: 'bubble_pair', duration: 5, triggerBy: ['player', 'nano'] } },
+    { label: '魔法燭台', value: { id: 'candle_1', kind: 'magicCandelabra', groupId: '', setId: 'candle_set_1', x: 780, y: 170, w: 36, h: 58, switchId: 'candle_pair', flameColor: 'orange', required: 2, litDuration: 0, triggerBy: ['magic'] } },
     { label: 'リボンスイッチ', value: { id: 'ribbon_switch_1', kind: 'ribbonSwitch', groupId: '', x: 504, y: 192, w: 40, h: 40, targetGroup: 'default', triggerBy: ['magic'] } },
   ],
   switchTargets: [
     { label: 'スイッチ対象テーブル', value: { id: 'target_1', groupId: '', kind: 'teaTable', variant: 'long', imageKey: 'switch_target_table_long', x: 420, y: 198, w: 92, h: 38, switchId: 'switch_1', activeWhenOn: true, solid: true } },
+    { label: 'スイッチ対象椅子', value: { id: 'chair_target_1', groupId: '', kind: 'teaChair', variant: 'purple', imageKey: 'switch_target_chair_purple', x: 420, y: 188, w: 48, h: 48, switchId: 'switch_1', activeWhenOn: true, solid: true } },
   ],
   balloonRides: [
     {
@@ -636,13 +665,7 @@ export function getEditorFieldGroupsForObject(category, object = {}) {
       label: 'スイッチ',
       fields: [
         textField('id', 'ID'),
-        selectField('kind', '種類', [
-          { value: 'teaBell', label: 'お茶会ベル' },
-          { value: 'glassRose', label: 'ガラスのローズ' },
-          { value: 'rainbowBubble', label: '虹色シャボン' },
-          { value: 'magicCandelabra', label: '魔法燭台' },
-          { value: 'ribbonSwitch', label: 'リボンスイッチ' },
-        ]),
+        selectField('kind', '種類', SWITCH_GIMMICK_KIND_OPTIONS),
         textField('groupId', 'グループID'),
         numberField('x', 'X', { step: 8 }),
         numberField('y', 'Y', { step: 8 }),
@@ -656,6 +679,7 @@ export function getEditorFieldGroupsForObject(category, object = {}) {
         label: 'リボンスイッチ',
         fields: [
           textField('targetGroup', '起動対象グループ', { defaultValue: 'default' }),
+          { key: 'triggerBy', label: '反応対象JSON', type: 'json', defaultValue: ['magic'] },
         ],
       }];
     }
@@ -667,10 +691,89 @@ export function getEditorFieldGroupsForObject(category, object = {}) {
         numberField('required', '必要数', { step: 1, min: 1, defaultValue: 1 }),
         numberField('duration', 'ON時間', { step: 0.1 }),
         numberField('litDuration', '点灯時間', { step: 0.1 }),
+        { key: 'triggerBy', label: '反応対象JSON', type: 'json', defaultValue: ['player', 'nano', 'magic'] },
       ],
     }];
   }
 
+  if (category === 'switchTargets') {
+    return [{
+      label: 'スイッチ対象',
+      fields: [
+        textField('id', 'ID'),
+        selectField('kind', '種類', SWITCH_TARGET_KIND_OPTIONS),
+        selectField('variant', '見た目', SWITCH_TARGET_VARIANT_OPTIONS),
+        textField('groupId', 'グループID'),
+        numberField('x', 'X', { step: 8 }),
+        numberField('y', 'Y', { step: 8 }),
+        numberField('w', '幅', { step: 8, min: 1 }),
+        numberField('h', '高さ', { step: 8, min: 1 }),
+        textField('switchId', 'スイッチID'),
+        checkboxField('activeWhenOn', 'ON時に有効', { defaultValue: true }),
+        checkboxField('solid', '当たり判定あり', { defaultValue: true }),
+        textField('imageKey', '画像キー'),
+      ],
+    }];
+  }
+
+  if (category === 'balloonRides') {
+    return [
+      {
+        label: '風船ライド',
+        fields: [
+          textField('id', 'ID'),
+          textField('groupId', 'グループID'),
+        ],
+      },
+      {
+        label: '開始地点',
+        fields: [
+          numberField('start.x', '開始X', { step: 8 }),
+          numberField('start.y', '開始Y', { step: 8 }),
+          numberField('start.w', '開始幅', { step: 8, min: 1, defaultValue: 38 }),
+          numberField('start.h', '開始高さ', { step: 8, min: 1, defaultValue: 94 }),
+          numberField('start.cameraX', '開始カメラX', { step: 8 }),
+          numberField('start.cameraY', '開始カメラY', { step: 8 }),
+          numberField('start.respawn.x', '復帰X', { step: 8 }),
+          numberField('start.respawn.y', '復帰Y', { step: 8 }),
+        ],
+      },
+      {
+        label: 'ゴール',
+        fields: [
+          numberField('goal.x', 'ゴールX', { step: 8 }),
+          numberField('goal.y', 'ゴールY', { step: 8 }),
+          numberField('goal.w', 'ゴール幅', { step: 8, min: 1 }),
+          numberField('goal.h', 'ゴール高さ', { step: 8, min: 1 }),
+        ],
+      },
+      {
+        label: 'スクロール/操作',
+        fields: [
+          selectField('config.scrollMode', 'スクロール', BALLOON_SCROLL_MODE_OPTIONS, { defaultValue: 'horizontal' }),
+          numberField('config.scrollSpeed', 'スクロール速度', { step: 1 }),
+          numberField('config.scrollSpeedX', 'スクロール速度X', { step: 1 }),
+          numberField('config.scrollSpeedY', 'スクロール速度Y', { step: 1 }),
+          numberField('config.moveSpeedX', '移動速度X', { step: 1 }),
+          numberField('config.moveSpeedY', '移動速度Y', { step: 1 }),
+          numberField('config.startDelay', '開始待ち', { step: 0.01, min: 0 }),
+          numberField('config.hitGrace', '被弾猶予', { step: 0.01, min: 0 }),
+          numberField('config.balloonLossDownDrift', '風船喪失時降下', { step: 1 }),
+          numberField('config.failScreenMarginY', '失敗判定余白Y', { step: 1 }),
+        ],
+      },
+      {
+        label: '移動範囲/障害物',
+        fields: [
+          numberField('config.bounds.minX', '範囲minX', { step: 1 }),
+          numberField('config.bounds.maxX', '範囲maxX', { step: 1 }),
+          numberField('config.bounds.minY', '範囲minY', { step: 1 }),
+          numberField('config.bounds.maxY', '範囲maxY', { step: 1 }),
+          { key: 'hazards', label: '障害物JSON', type: 'json', defaultValue: [] },
+        ],
+      },
+    ];
+  }
 
   if (category === 'specialEvents') {
     const common = {

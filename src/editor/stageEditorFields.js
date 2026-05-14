@@ -81,12 +81,23 @@ export function createFieldset(group) {
   return fieldset;
 }
 
-export function normalizeFieldValue(input, field) {
+export function normalizeFieldValue(input, field, previousValue = undefined) {
   if (field.type === 'checkbox') return input.checked;
   if (field.type === 'number') return Number(input.value || 0);
   if (field.type === 'select' && field.valueType === 'number') return Number(input.value || 0);
   if (field.type === 'json') {
-    try { return JSON.parse(input.value || 'null'); } catch { return input.value; }
+    try {
+      const value = JSON.parse(input.value || 'null');
+      input.classList.remove('editor-json-error');
+      input.setCustomValidity?.('');
+      delete input.dataset.invalidJson;
+      return value;
+    } catch (error) {
+      input.classList.add('editor-json-error');
+      input.dataset.invalidJson = '1';
+      input.setCustomValidity?.(`JSONの形式が不正です: ${error.message}`);
+      return previousValue;
+    }
   }
   return input.value;
 }

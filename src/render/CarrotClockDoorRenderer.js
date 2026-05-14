@@ -4,7 +4,7 @@
  * 更新ルール: 長針は時計扉の時刻状態に追従して回転し、短針はdoor.hourHandTimeで指定された固定位置を描画する。
  */
 import { drawSprite, roundedRect } from './drawSprite.js';
-import { normalizeClockModulo, normalizeClockTime } from '../stage/CarrotClockDoorSystem.js';
+import { normalizeClockModulo } from '../stage/CarrotClockDoorSystem.js';
 
 function getVisualRect(img, door) {
   const visualH = door.visualH || door.h + 42;

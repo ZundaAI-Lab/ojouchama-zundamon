@@ -8,7 +8,7 @@ import { RewardCoinDropService } from '../RewardCoinDropService.js';
 export class ResidentRewardPolicy {
   static getCoins(resident) {
     if (Number.isFinite(resident?.rewardCoins)) return resident.rewardCoins;
-    return resident?.type === 'jelly' || resident?.type === 'macaron' ? 1 : 2;
+    return 1;
   }
 
   static apply(runtime, resident, options = {}) {

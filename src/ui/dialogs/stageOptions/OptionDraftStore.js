@@ -130,6 +130,17 @@ export class OptionDraftStore {
     return this.touchControls;
   }
 
+  setTouchButtonSlot(slotIndex, action) {
+    const current = this.touchControls || this.loadTouchControls();
+    const buttonSlots = [...current.buttonSlots];
+    buttonSlots[slotIndex] = action || null;
+    this.touchControls = normalizeTouchConfig({
+      ...current,
+      buttonSlots,
+    });
+    return this.touchControls;
+  }
+
   resetTouchControlsToDefault() {
     this.touchControls = normalizeTouchConfig(DEFAULT_TOUCH_CONFIG);
     return this.touchControls;

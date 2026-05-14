@@ -27,7 +27,7 @@ export class SfxVoiceScheduler {
       return;
     }
     if (voice.type === 'sequence') {
-      this.scheduleSequence(ctx, destination, time, voice, gainScale);
+      this.scheduleSequence(destination, time, voice, gainScale);
       return;
     }
     this.scheduleTone(ctx, destination, time, voice, gainScale);
@@ -140,7 +140,7 @@ export class SfxVoiceScheduler {
     }, gainScale));
   }
 
-  scheduleSequence(ctx, destination, time, voice, gainScale) {
+  scheduleSequence(destination, time, voice, gainScale) {
     const { type: _parentType, offset: _parentOffset, steps: _parentSteps, ...stepDefaults } = voice;
     const steps = Array.isArray(voice.steps) && voice.steps.length > 0
       ? voice.steps

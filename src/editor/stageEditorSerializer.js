@@ -1,6 +1,7 @@
 /**
  * 責務: エディタ用ステージデータをJSON/JSファイル文字列へ変換する。
  * 更新ルール: UI操作や検証は持たず、出力形式とファイル名推定だけを担当する。
+ * 更新ルール: 出力先推定は編集中のstage.idを優先し、古いrouteメタ情報に引きずられない。
  */
 import { createEditorStage, cloneEditorValue } from './stageEditorSchema.js';
 
@@ -32,8 +33,9 @@ export function serializeStageToJsModule(stage) {
 
 export function resolveStageSourcePath(stage) {
   if (stage.id === 'switch_test_lab' || stage.testStage) return 'src/data/stages/switch_test_lab.js';
-  const routeId = stage.route?.id || stage.id.replace(/_(area_[123]|boss)$/u, '');
-  const areaRole = stage.areaRole || (stage.id.endsWith('_boss') ? 'boss' : 'area_1');
+  const areaRole = stage.areaRole || (stage.id?.endsWith('_boss') ? 'boss' : 'area_1');
+  const routeIdFromStageId = stage.id ? stage.id.replace(/_(area_[123]|boss)$/u, '') : '';
+  const routeId = routeIdFromStageId || stage.route?.id || 'new_stage';
   const fileName = areaRole === 'boss' ? 'boss.js' : `${areaRole}.js`;
   return `src/data/stages/${routeId}/${fileName}`;
 }

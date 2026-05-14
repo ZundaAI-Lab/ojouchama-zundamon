@@ -6,13 +6,13 @@ import { BGM_TRACK_DEFS } from '../../data/audio/bgmTrackDefs.js';
 import { SFX_DEFS } from '../../data/audio/sfxDefs.js';
 import { deepClone } from '../../data/audio/audioSchema.js';
 import { AudioEditorPreviewBridge } from './audioEditorPreviewBridge.js';
-import { bgmTrackOutputPath, downloadText, serializeBgmTrackDef, serializeSfxDefs } from './audioEditorSerializer.js';
-import { validateBgmTrackDefs, validateSfxDefs } from './audioEditorValidation.js';
+import { bgmTrackOutputPath, downloadText, serializeBgmTrackDef, serializeSfxCategoryDefs, sfxCategoryOutputPath } from './audioEditorSerializer.js';
 import { bgmEditorPanelMethods } from './BgmEditorPanel.js';
 import { bgmTimelineControllerMethods } from './BgmTimelineController.js';
 import { audioEditorListPanelMethods } from './AudioEditorListPanel.js';
 import { sfxEditorPanelMethods } from './SfxEditorPanel.js';
 import { $, ensureBgmShape, firstInstrumentId, firstSectionName } from './audioEditorFormUtils.js';
+import { createSfxCategoryMap, defsForSfxCategory, sfxCategoryForId } from './audioEditorSfxCategories.js';
 
 
 export class AudioEditorApp {
@@ -21,6 +21,7 @@ export class AudioEditorApp {
     this.mode = 'bgm';
     this.bgmDefs = Object.fromEntries(Object.entries(BGM_TRACK_DEFS).map(([id, track]) => [id, ensureBgmShape(track)]));
     this.sfxDefs = deepClone(SFX_DEFS);
+    this.sfxCategoryById = createSfxCategoryMap();
     this.selectedBgmId = Object.keys(this.bgmDefs)[0];
     this.selectedSfxId = Object.keys(this.sfxDefs)[0];
     this.selectedSectionName = firstSectionName(this.currentBgmDef());
@@ -108,8 +109,10 @@ export class AudioEditorApp {
 
   exportSfx() {
     this.commitCurrentForm();
-    $('#audio-export-path', this.root).textContent = 'src/data/audio/sfxDefs.js';
-    $('#audio-export-output', this.root).value = serializeSfxDefs(this.sfxDefs);
+    const categoryId = sfxCategoryForId(this.sfxCategoryById, this.selectedSfxId);
+    const categoryDefs = defsForSfxCategory(this.sfxDefs, this.sfxCategoryById, categoryId);
+    $('#audio-export-path', this.root).textContent = sfxCategoryOutputPath(categoryId);
+    $('#audio-export-output', this.root).value = serializeSfxCategoryDefs(categoryId, categoryDefs);
   }
 
   downloadOutput() {

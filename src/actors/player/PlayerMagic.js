@@ -32,10 +32,10 @@ export class PlayerMagic {
     const life = 0.92 + magicLevel * 0.2 + (boosted ? 0.18 : 0);
     const dir = this.resolveDirection(direction);
     const projectileW = boosted ? 23 : 18;
-    const projectileH = boosted ? 18 : 14;
+    const projectileH = boosted ? 18 : 15;
     const projectile = new Projectile({
       x: this.player.x + this.player.w / 2 + dir.x * 10 - projectileW / 2,
-      y: this.player.y + 12 + projectileH / 2 + dir.y * 10 - projectileH / 2,
+      y: this.player.y + projectileH / 2 + dir.y * 10 - projectileH / 2,
       vx: dir.x * speed,
       vy: dir.y * speed,
       boosted,

@@ -1,12 +1,14 @@
 /**
  * 責務: タイトル画面の入力・セーブ分岐・画面遷移を制御する。
  * 更新ルール: DOM構造は TitleView に置き、ここではイベント接続とシーン遷移だけを担当する。タイトルのなのちゃん表示はstoryFlags.nanoJoinedを基準にし、サイズ調整はキャンバス演出内に閉じ込める。
+ * 更新ルール: 次画面候補の画像先読みはassetLoadPlansの算出結果だけを使い、このSceneへ個別ロード処理を持ち込まない。
  */
 import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { TitleView } from '../ui/views/TitleView.js';
 import { WORLDS } from '../data/worlds.js';
+import { getSceneAssetKeys } from '../data/assetLoadPlans.js';
 import { drawCoverBackground } from '../utils/background.js';
 
 const TITLE_NANO_DRAW_W = 66;
@@ -86,6 +88,10 @@ export class TitleScene extends BaseScene {
       location.reload();
     });
     this.menu = new MenuNavigator({ app: this.app, root: wrapper });
+    this.app.assets.preloadKeys([
+      ...getSceneAssetKeys(SCENES.OPENING),
+      ...getSceneAssetKeys(SCENES.GARDEN),
+    ]);
   }
 
   exit() {

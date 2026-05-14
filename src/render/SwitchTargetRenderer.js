@@ -3,32 +3,8 @@
  * 更新ルール: solid判定やON/OFF反映はstage側へ置き、ここではactive値に応じた見た目だけを扱う。
  * 更新ルール: 生成済みPNGアセットを優先して描画し、読み込み失敗時だけ簡易図形へフォールバックする。
  */
+import { getSwitchTargetImageKey } from '../data/switchVisualAssetKeys.js';
 import { drawSprite, roundedRect } from './drawSprite.js';
-
-const CHAIR_KEYS = {
-  pink: 'switch_target_chair_pink',
-  green: 'switch_target_chair_green',
-  purple: 'switch_target_chair_purple',
-  heart: 'switch_target_chair_heart',
-  wing: 'switch_target_chair_wing',
-};
-
-const TABLE_KEYS = {
-  pink: 'switch_target_table_round_pink',
-  green: 'switch_target_table_round_green',
-  purple: 'switch_target_table_purple',
-  long: 'switch_target_table_long',
-  sidePink: 'switch_target_table_side_pink',
-  sideGreen: 'switch_target_table_side_green',
-  candle: 'switch_target_table_candle',
-};
-
-function getImageKey(target) {
-  if (target.imageKey) return target.imageKey;
-  if (target.kind === 'teaChair') return CHAIR_KEYS[target.variant] || CHAIR_KEYS.pink;
-  if (target.kind === 'teaTable') return TABLE_KEYS[target.variant] || TABLE_KEYS.pink;
-  return null;
-}
 
 function drawAsset(ctx, img, target, alpha = 1) {
   if (!img) return false;
@@ -68,7 +44,7 @@ export class SwitchTargetRenderer {
 
   render(scene, ctx) {
     for (const target of scene.stage.switchTargets || []) {
-      const img = this.app.assets.getImage(getImageKey(target));
+      const img = this.app.assets.getImage(getSwitchTargetImageKey(target));
       ctx.save();
       if (target.active === false) {
         drawAsset(ctx, img, target, 0.24);

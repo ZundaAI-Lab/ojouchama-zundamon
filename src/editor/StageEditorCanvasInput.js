@@ -7,7 +7,7 @@ import { createEditorSelectionKey, getEditorCanvasObjectEntries, getEditorHitTes
 import { getStageObjectBounds, isFiniteEditorBounds } from './stageEditorObjectMetrics.js';
 import { EDITOR_CATEGORY_DEFS } from './stageEditorCatalog.js';
 import { moveEditorObjectByDelta } from './stageEditorObjectMutation.js';
-import { canResizeEditorObject, getEditorCanvasViewBounds, getEditorVisibleStageRect, getNextEditorCanvasScale, isEditorResizeHandleHit, isInsideBounds, normalizeEditorRectFromPoints, rectsIntersect } from './stageEditorGeometry.js';
+import { canResizeEditorObject, getEditorVisibleStageRect, getNextEditorCanvasScale, isEditorResizeHandleHit, isInsideBounds, normalizeEditorRectFromPoints, rectsIntersect } from './stageEditorGeometry.js';
 
 export const stageEditorCanvasInputMethods = {
 queueResizeRender() {

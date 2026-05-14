@@ -6,7 +6,7 @@
  */
 import { createProjectileFromCatalog } from '../../../projectile/ProjectileFactory.js';
 import { clamp } from '../../../../utils/math.js';
-import { chooseTarget, actorCenter, getParam, getTargetByName, normalizeAim, resolveFromPath } from './ResidentCommandUtils.js';
+import { chooseTarget, actorCenter, getTargetByName, normalizeAim, resolveFromPath } from './ResidentCommandUtils.js';
 
 export const COMMAND_RESULT = {
   NONE: { handled: false },

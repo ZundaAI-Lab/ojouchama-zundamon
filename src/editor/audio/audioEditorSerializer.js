@@ -2,6 +2,8 @@
  * 責務: サウンドエディタ上の音声定義を、ゲームへ戻せるJSモジュール文字列へ変換する。
  * 更新ルール: DOM操作や検証は持たず、data/audio配下の定義ファイル形式だけを生成する。
  */
+import { SFX_CATEGORY_META } from './audioEditorSfxCategories.js';
+
 function stableObject(value) {
   if (Array.isArray(value)) return value.map(stableObject);
   if (!value || typeof value !== 'object') return value;
@@ -16,8 +18,13 @@ function toTrackFilename(id) {
   return `${String(id || 'new-bgm').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'new_bgm'}.js`;
 }
 
+export function serializeSfxCategoryDefs(categoryId, defs) {
+  const meta = SFX_CATEGORY_META[categoryId] || SFX_CATEGORY_META.ui;
+  return `/**\n * 責務: ${meta.exportName} に属するSEレシピだけを定義する。\n * 更新ルール: 再生処理は src/audio/sfx/ に置き、ここではID・表示名・voice配列だけを管理する。\n */\nexport const ${meta.exportName} = ${moduleObject(defs)};\n`;
+}
+
 export function serializeSfxDefs(defs) {
-  return `/**\n * 責務: サウンドエディタとSfxPlayerが共有する、編集可能なSEレシピを定義する。\n * 更新ルール: 再生処理は src/audio/sfx/ に置き、ここではID・表示名・voice配列だけを管理する。\n */\nexport const SFX_DEFS = ${moduleObject(defs)};\n\nexport const SFX_IDS = Object.freeze(Object.keys(SFX_DEFS));\n`;
+  return serializeSfxCategoryDefs('ui', defs);
 }
 
 export function serializeBgmTrackDef(track) {
@@ -27,6 +34,10 @@ export function serializeBgmTrackDef(track) {
 
 export function bgmTrackOutputPath(track) {
   return `src/data/audio/bgm/tracks/${toTrackFilename(track?.id)}`;
+}
+
+export function sfxCategoryOutputPath(categoryId) {
+  return (SFX_CATEGORY_META[categoryId] || SFX_CATEGORY_META.ui).path;
 }
 
 export function downloadText(filename, text) {

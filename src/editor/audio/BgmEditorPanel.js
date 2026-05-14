@@ -132,7 +132,7 @@ commitBgmForm() {
     const oldId = this.selectedBgmId;
     const requestedId = normalizeBgmId(data.bgmId, oldId);
     const nextId = requestedId !== oldId && this.bgmDefs[requestedId] ? oldId : requestedId;
-    const source = ensureBgmShape(this.bgmDefs[oldId]);
+    const source = deepClone(this.bgmDefs[oldId] || BGM_NEW_PRESET);
     source.id = nextId;
     source.title = String(data.title || nextId);
     source.world = String(data.world || '');
@@ -330,10 +330,11 @@ addEvent() {
     const instrument = this.selectedInstrumentId || firstInstrumentId(track);
     const instrumentKind = track.instruments?.[instrument]?.kind;
     const note = DRUM_NOTES.has(instrumentKind) ? instrumentKind : 'C5';
-    events.push({ t: 0, n: note, d: 0.5, i: instrument, v: 0.7 });
+    const newEvent = { t: 0, n: note, d: 0.5, i: instrument, v: 0.7 };
+    events.push(newEvent);
     events.sort((a, b) => a.t - b.t || String(a.i).localeCompare(String(b.i)));
     track.sections[this.selectedSectionName] = events;
-    this.selectedEventIndex = events.length - 1;
+    this.selectedEventIndex = Math.max(0, events.indexOf(newEvent));
     this.render();
   },
 
@@ -345,7 +346,8 @@ cloneEvent() {
     const clone = deepClone(events[this.selectedEventIndex]);
     clone.t = roundToGrid(Number(clone.t) + 0.5, 0.25);
     events.splice(this.selectedEventIndex + 1, 0, clone);
-    this.selectedEventIndex += 1;
+    events.sort((a, b) => a.t - b.t || String(a.i).localeCompare(String(b.i)));
+    this.selectedEventIndex = Math.max(0, events.indexOf(clone));
     this.render();
   },
 

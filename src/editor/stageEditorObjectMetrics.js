@@ -1,6 +1,7 @@
 /**
  * 責務: ステージエディタ上のオブジェクト寸法、画像キー、当たり判定矩形を解決する。
  * 更新ルール: 描画や選択状態は持たず、データ定義からEditor表示用メトリクスだけを導出する。
+ * 更新ルール: アイテムは実行時のhitboxWidth/hitboxHeight/renderWidth/renderHeightを優先し、縦長アイテムの判定をずらさない。
  */
 import { ITEM_DEFS } from '../data/itemDefs.js';
 import { RESIDENT_DEFS } from '../data/residentDefs.js';
@@ -70,9 +71,17 @@ export function getEditorResidentMetrics(object = {}) {
 
 export function getEditorItemMetrics(object = {}) {
   const def = ITEM_DEFS[object.kind] || ITEM_DEFS.coin;
+  const hitboxWidth = object.hitboxWidth ?? def.hitboxWidth ?? object.hitboxSize ?? def.hitboxSize ?? 14;
+  const hitboxHeight = object.hitboxHeight ?? def.hitboxHeight ?? object.hitboxSize ?? def.hitboxSize ?? hitboxWidth;
+  const renderWidth = object.renderWidth ?? def.renderWidth ?? object.renderSize ?? def.renderSize ?? 18;
+  const renderHeight = object.renderHeight ?? def.renderHeight ?? object.renderSize ?? def.renderSize ?? renderWidth;
   return {
-    hitboxSize: object.hitboxSize ?? def.hitboxSize ?? 14,
-    renderSize: object.renderSize ?? def.renderSize ?? 18,
+    hitboxSize: Math.max(hitboxWidth, hitboxHeight),
+    hitboxWidth,
+    hitboxHeight,
+    renderSize: Math.max(renderWidth, renderHeight),
+    renderWidth,
+    renderHeight,
     imageKey: object.imageKey || def.imageKey,
   };
 }
@@ -112,8 +121,7 @@ export function getStageObjectBounds(stage, category, object) {
   if (category === 'areas') return { x: object.startX, y: 0, w: Math.max(1, object.endX - object.startX), h: stage.height };
   if (category === 'items') {
     const metrics = getEditorItemMetrics(object);
-    const size = metrics.hitboxSize;
-    return { x: object.x - size / 2, y: object.y - size / 2, w: size, h: size };
+    return { x: object.x - metrics.hitboxWidth / 2, y: object.y - metrics.hitboxHeight / 2, w: metrics.hitboxWidth, h: metrics.hitboxHeight };
   }
   if (category === 'residents') {
     const metrics = getEditorResidentMetrics(object);

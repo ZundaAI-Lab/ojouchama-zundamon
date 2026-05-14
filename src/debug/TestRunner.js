@@ -16,7 +16,7 @@ function createAssertionError(message, details = {}) {
 
 function stableStringify(value) {
   const seen = new WeakSet();
-  return JSON.stringify(value, (key, current) => {
+  return JSON.stringify(value, (_key, current) => {
     if (!current || typeof current !== 'object') return current;
     if (seen.has(current)) return '[Circular]';
     seen.add(current);

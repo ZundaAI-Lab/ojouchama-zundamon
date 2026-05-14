@@ -6,6 +6,7 @@
  * 更新ルール: うさぎのリボン庭園固有ギミックも、見た目はRenderer、当たり判定形状はCollisionWorldBuilderに分離し、ここでは状態変化だけを扱う。
  * 更新ルール: 魔法反応足場の命中判定とデバッグ表示範囲は同じ矩形生成関数を使い、表示と実判定をずらさない。
  * 更新ルール: page/wishLeaf/ribbonBridgeの有効時間は足場データのactiveDurationを正本にし、0秒は無制限として扱う。
+ * 更新ルール: teacupSpinはプレイヤー非接地時に角度を自動復帰させず、最後に傾いた角度を保持する。
  */
 import { PLAYER_CONFIG } from '../config/playerConfig.js';
 import { approach, clamp } from '../utils/math.js';
@@ -316,12 +317,15 @@ export class PlatformGimmickSystem {
 
       if (p.kind === 'teacupSpin') {
         const standing = getPlayerGround(runtime, p);
-        const playerCenterX = runtime.player.x + runtime.player.w / 2;
-        const half = Math.max(1, p.w / 2);
-        const side = standing ? clamp((playerCenterX - (p.x + p.w / 2)) / half, -1, 1) : 0;
-        const amount = Math.max(0, Math.abs(side) - TEACUP_SPIN_TILT_DEADZONE) / (1 - TEACUP_SPIN_TILT_DEADZONE);
-        const targetTilt = Math.sign(side) * amount * getTeacupSpinTiltMax(p);
-        p.visualTilt = approach(p.visualTilt ?? 0, targetTilt, TEACUP_SPIN_TILT_SPEED * dt);
+        if (!Number.isFinite(p.visualTilt)) p.visualTilt = 0;
+        if (standing) {
+          const playerCenterX = runtime.player.x + runtime.player.w / 2;
+          const half = Math.max(1, p.w / 2);
+          const side = clamp((playerCenterX - (p.x + p.w / 2)) / half, -1, 1);
+          const amount = Math.max(0, Math.abs(side) - TEACUP_SPIN_TILT_DEADZONE) / (1 - TEACUP_SPIN_TILT_DEADZONE);
+          const targetTilt = Math.sign(side) * amount * getTeacupSpinTiltMax(p);
+          p.visualTilt = approach(p.visualTilt, targetTilt, TEACUP_SPIN_TILT_SPEED * dt);
+        }
       }
 
       if (p.kind === 'spoon') {

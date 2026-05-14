@@ -282,3 +282,38 @@
     height: min(var(--touch-button-size, 68px), 12vw);
   }
 }
+
+/* touch_button_slots_01: 機能ボタンは5列×2段の10候補地へ割り当て、未割り当てスロットは描画しない。 */
+.touch-button-grid {
+  --touch-button-grid-size: var(--touch-button-size, 68px);
+  --touch-button-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, var(--touch-button-grid-size));
+  grid-template-rows: repeat(2, var(--touch-button-grid-size));
+  gap: var(--touch-button-gap);
+  align-items: center;
+  justify-items: center;
+}
+
+.touch-button-grid .touch-btn {
+  width: var(--touch-button-grid-size);
+  height: var(--touch-button-grid-size);
+}
+
+@media (max-width: 860px), (max-height: 560px) {
+  .touch-button-grid {
+    --touch-button-grid-size: min(var(--touch-button-size, 68px), 12vw);
+    --touch-button-gap: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .touch-right {
+    max-width: calc(100% - 122px);
+  }
+
+  .touch-button-grid {
+    --touch-button-grid-size: min(var(--touch-button-size, 68px), 11.5vw);
+    --touch-button-gap: 6px;
+  }
+}

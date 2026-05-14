@@ -4,7 +4,8 @@
  */
 import { deepClone, normalizeId, normalizeSfxDefinition, normalizeSfxVoice } from '../../data/audio/audioSchema.js';
 import { SFX_NEW_PRESET, SFX_TYPE_OPTIONS, SFX_WAVEFORM_OPTIONS } from './audioEditorCatalog.js';
-import { $, cleanObject, clampNumber, escapeHtml, numberList, parseJsonValue, toOptionalNumber, toPrettyJson } from './audioEditorFormUtils.js';
+import { $, escapeHtml, numberList, parseJsonValue, toPrettyJson } from './audioEditorFormUtils.js';
+import { sfxCategoryForId } from './audioEditorSfxCategories.js';
 
 export const sfxEditorPanelMethods = {
 renderSfxEditor() {
@@ -57,6 +58,8 @@ commitSfxForm() {
     const requestedId = normalizeId(data.id, oldId);
     const nextId = requestedId !== oldId && this.sfxDefs[requestedId] ? oldId : requestedId;
     const source = deepClone(this.sfxDefs[oldId]);
+    const categoryId = sfxCategoryForId(this.sfxCategoryById, oldId);
+    const currentVoice = source.voices?.[this.selectedVoiceIndex] || {};
     const voice = {
       type: data.voiceType,
       waveform: data.waveform,
@@ -70,20 +73,25 @@ commitSfxForm() {
       pan: Number(data.pan),
       filterFreq: data.filterFreq === '' ? undefined : Number(data.filterFreq),
       notes: data.notes ? numberList(data.notes) : undefined,
-      steps: parseJsonValue(data.steps, undefined),
+      steps: parseJsonValue(data.steps, currentVoice.steps),
     };
     Object.keys(voice).forEach(key => voice[key] === undefined && delete voice[key]);
     source.id = nextId;
     source.name = data.name;
     source.gain = Number(data.gain);
     source.voices[this.selectedVoiceIndex] = normalizeSfxVoice(voice);
-    if (nextId !== oldId) delete this.sfxDefs[oldId];
+    if (nextId !== oldId) {
+      delete this.sfxDefs[oldId];
+      delete this.sfxCategoryById[oldId];
+    }
     this.sfxDefs[nextId] = normalizeSfxDefinition(source, nextId);
+    this.sfxCategoryById[nextId] = categoryId;
     this.selectedSfxId = nextId;
   },
 
 createSfx() {
     const base = deepClone(SFX_NEW_PRESET);
+    const categoryId = sfxCategoryForId(this.sfxCategoryById, this.selectedSfxId);
     let index = 1;
     let id = base.id;
     while (this.sfxDefs[id]) {
@@ -93,6 +101,7 @@ createSfx() {
     base.id = id;
     base.name = `${base.name} ${index}`;
     this.sfxDefs[id] = base;
+    this.sfxCategoryById[id] = categoryId;
     this.selectedSfxId = id;
     this.selectedVoiceIndex = 0;
     this.render();
@@ -100,6 +109,7 @@ createSfx() {
 
 cloneSfx() {
     const source = deepClone(this.currentSfxDef());
+    const categoryId = sfxCategoryForId(this.sfxCategoryById, this.selectedSfxId);
     let index = 1;
     let id = `${source.id}_copy`;
     while (this.sfxDefs[id]) {
@@ -109,6 +119,7 @@ cloneSfx() {
     source.id = id;
     source.name = `${source.name || source.id} 複製`;
     this.sfxDefs[id] = source;
+    this.sfxCategoryById[id] = categoryId;
     this.selectedSfxId = id;
     this.selectedVoiceIndex = 0;
     this.render();
@@ -117,6 +128,7 @@ cloneSfx() {
 deleteSfx() {
     if (Object.keys(this.sfxDefs).length <= 1) return;
     delete this.sfxDefs[this.selectedSfxId];
+    delete this.sfxCategoryById[this.selectedSfxId];
     this.selectedSfxId = Object.keys(this.sfxDefs)[0];
     this.selectedVoiceIndex = 0;
     this.render();

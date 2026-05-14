@@ -1,10 +1,12 @@
 /**
  * 責務: オープニング会話の進行、入力、ガーデン遷移、背景描画を担当する。
  * 更新ルール: 会話文の構造変更時はOpeningView/Dialogue系との境界を保つ。
+ * 更新ルール: 次画面と最初のステージ画像の先読みはassetLoadPlansの算出結果だけを使う。
  */
 import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { INPUT_ACTIONS } from '../config/inputActions.js';
+import { getSceneAssetKeys, getStageAssetKeysById } from '../data/assetLoadPlans.js';
 import { drawCoverBackground } from '../utils/background.js';
 
 const OPENING_BACKGROUND_SCROLL_SPEED = 4;
@@ -53,6 +55,10 @@ export class OpeningScene extends BaseScene {
     this.nextBtn.addEventListener('click', () => this.advance());
     this.wrapper.querySelector('#skip-btn').addEventListener('click', () => this.finish());
     this.refreshText();
+    this.app.assets.preloadKeys([
+      ...getSceneAssetKeys(SCENES.GARDEN),
+      ...getStageAssetKeysById('candy_forest_area_1'),
+    ]);
   }
 
   refreshText() {
@@ -66,6 +72,10 @@ export class OpeningScene extends BaseScene {
     if (this.index < OPENING_LINES.length - 1) {
       this.index += 1;
       this.refreshText();
+    this.app.assets.preloadKeys([
+      ...getSceneAssetKeys(SCENES.GARDEN),
+      ...getStageAssetKeysById('candy_forest_area_1'),
+    ]);
       this.app.audio.playSfx('dialog_next');
       return;
     }

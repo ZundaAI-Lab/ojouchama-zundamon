@@ -312,8 +312,7 @@ drawSpecialEvent(ctx, object, index) {
 drawItem(ctx, object, index) {
     const rect = getStageObjectBounds(this.stage, 'items', object);
     const metrics = getEditorItemMetrics(object);
-    const size = metrics.renderSize;
-    const ok = this.drawImage(ctx, metrics.imageKey, object.x - size / 2, object.y - size / 2, size, size);
+    const ok = this.drawImage(ctx, metrics.imageKey, object.x - metrics.renderWidth / 2, object.y - metrics.renderHeight / 2, metrics.renderWidth, metrics.renderHeight);
     if (!ok) {
       ctx.fillStyle = '#f2c94c';
       ctx.beginPath();

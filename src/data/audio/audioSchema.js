@@ -61,7 +61,7 @@ export function normalizeSfxVoice(raw = {}) {
   };
   if (Number.isFinite(Number(raw.endFreq))) voice.endFreq = clampNumber(raw.endFreq, 20, 12000, voice.startFreq);
   if (Number.isFinite(Number(raw.filterFreq))) voice.filterFreq = clampNumber(raw.filterFreq, 20, 16000, 2400);
-  if (Array.isArray(raw.notes)) voice.notes = raw.notes.map(note => toNumber(note, 0)).filter(note => note !== 0);
+  if (Array.isArray(raw.notes)) voice.notes = raw.notes.map(note => Number(note)).filter(Number.isFinite);
   if (Array.isArray(raw.steps)) {
     const { type: _parentType, offset: _parentOffset, steps: _parentSteps, ...stepDefaults } = raw;
     voice.steps = raw.steps.map((step) => {

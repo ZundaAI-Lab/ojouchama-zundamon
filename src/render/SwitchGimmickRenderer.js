@@ -94,7 +94,6 @@ function getBellNoteCount(gimmick) {
 }
 
 function drawBellNotes(renderer, ctx, g, scene) {
-  const remaining = Math.max(0, g.bellActiveTimer || 0);
   const count = getBellNoteCount(g);
   if (count <= 0) return;
 

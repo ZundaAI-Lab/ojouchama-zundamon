@@ -71,7 +71,7 @@ export class BalloonRideRenderer {
     this.renderStartObjects(ctx, system, scene.elapsed);
     this.renderGoalMarkers(ctx, system, scene.elapsed);
     this.renderHazards(ctx, system, scene.elapsed);
-    this.renderResidents(ctx, system, scene.elapsed);
+    this.renderResidents(ctx, system);
     this.renderEffects(ctx, system);
   }
 
@@ -134,7 +134,7 @@ export class BalloonRideRenderer {
     return HAZARD_KEYS.stormCloud;
   }
 
-  renderResidents(ctx, system, elapsed) {
+  renderResidents(ctx, system) {
     const verticalUp = !!system.isVerticalUpActive?.();
     for (const resident of system.getResidents()) {
       const attack = resident.type === 'balloonBird' ? !!resident.balloonBirdDive : resident.attackFlash > 0;

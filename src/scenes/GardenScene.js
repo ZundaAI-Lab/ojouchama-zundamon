@@ -1,11 +1,13 @@
 /**
  * 責務: ガーデン画面のステージ解放判定・選択操作・各画面への遷移を制御する。
  * 更新ルール: DOM生成は GardenView に任せ、ここでは進行状態の判定とイベント接続を担当する。ステージクリア後のショップ解放通知はこの画面で一度だけ表示する。
+ * 更新ルール: ステージ選択前の画像先読みはassetLoadPlansの算出結果だけを使い、ステージ内データ解析をこのSceneへ持ち込まない。
  */
 import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { WORLDS } from '../data/worlds.js';
 import { STAGE_ROUTES } from '../data/stages.js';
+import { getGardenStagePrefetchAssetKeys, getStageAssetKeysById } from '../data/assetLoadPlans.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { TutorialDialogController } from '../ui/dialogs/TutorialDialogController.js';
 import { GardenView } from '../ui/views/GardenView.js';
@@ -41,6 +43,7 @@ export class GardenScene extends BaseScene {
     this.heroFacing = 1;
     this.heroMoving = false;
     this.renderUi();
+    this.app.assets.preloadKeys(getGardenStagePrefetchAssetKeys(this.app.save.load()), { timeout: 1800 });
   }
 
   renderUi() {
@@ -56,6 +59,13 @@ export class GardenScene extends BaseScene {
       const record = save.stages[world.routeId];
       const dreamDrops = getDreamDropStatus(save, world.routeId);
       const row = this.view.createStageButton({ world, index, unlocked, record, dreamDrops });
+      const preloadStage = () => {
+        const bossDirectMode = !!this.app.debug?.get('bossDirectMode');
+        const stageId = bossDirectMode ? `${world.routeId}_boss` : world.startStageId;
+        this.app.assets.preloadKeys(getStageAssetKeysById(stageId), { timeout: 800 });
+      };
+      row.addEventListener('pointerenter', preloadStage);
+      row.addEventListener('focus', preloadStage);
       row.addEventListener('click', () => {
         this.app.audio.resume();
         this.app.audio.playSfx('ui_decide');

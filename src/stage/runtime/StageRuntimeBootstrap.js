@@ -8,6 +8,7 @@
  * 更新ルール: イベント中断後に再開するためのステージBGM IDとイベントBGM一時状態だけをRuntime状態として保持し、発音・フェード処理はaudioへ委譲する。
  * 更新ルール: ボス戦専用カメラ演出の依存生成はここで行い、BossEncounterControllerには生成責務を持たせない。
  * 更新ルール: 夢のしずく取得はゴール時まで未確定としてRuntimeに保持し、保存処理はStageClearServiceで行う。
+ * 更新ルール: 次ステージ画像の先読みはassetLoadPlansの算出結果だけを使い、Runtime初期化手順へステージ解析を増やさない。
  */
 import { Hud } from '../../ui/Hud.js';
 import { DialogueView } from '../../ui/DialogueView.js';
@@ -31,6 +32,7 @@ import { BossCameraController } from '../BossCameraController.js';
 import { NanoRideSupport } from '../../actors/nano/NanoRideSupport.js';
 import { NanoRescueEventSystem } from '../NanoRescueEventSystem.js';
 import { StageEventSystem } from '../StageEventSystem.js';
+import { getNextStagePrefetchAssetKeys } from '../../data/assetLoadPlans.js';
 import { STAGES } from '../../data/stages.js';
 import { DIFFICULTY_DEFS } from '../../config/difficultyDefs.js';
 import { deepClone } from '../../utils/object.js';
@@ -118,4 +120,6 @@ export async function enterStageRuntime(runtime) {
   if (runtime.stage.introDialogue && !runtime.params.skipIntro && !runtime.skipDialogueEvents) {
     runtime.dialogue.start(runtime.stage.introDialogue, () => runtime.app.audio.playSfx('dialog_next'), { position: 'center' });
   }
+
+  runtime.app.assets.preloadKeys(getNextStagePrefetchAssetKeys(runtime.stage), { timeout: 1800 });
 }

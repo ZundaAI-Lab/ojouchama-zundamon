@@ -2,12 +2,14 @@
  * 責務: editor.html専用のステージ編集UI、履歴、ステージ入出力、分割済み編集パネルの接続を統括する。
  * 更新ルール: Canvas入力・Canvas描画・会話編集・フォーム値変換は責務別モジュールへ委譲し、ここへ再統合しない。
  * 更新ルール: ゲーム本体Runtimeの生成責務は持たず、プレビューはstageEditorPreviewBridge経由で一時ステージを渡すだけにする。
+ * 更新ルール: 種類変更はカテゴリ別プリセットから再構築し、旧kind固有フィールドを残さない。
  */
 import { STAGES, STAGE_ROUTES } from '../data/stages.js';
 import { normalizeStageDefinition } from '../data/stageSchema.js';
 import { createEditorStage, cloneEditorValue, STAGE_EDITOR_GRID_SIZE, STAGE_EDITOR_VIEW } from './stageEditorSchema.js';
 import { EDITOR_CATEGORY_DEFS, EDITOR_DIALOGUE_DEFS, EDITOR_OBJECT_PRESETS, EDITOR_FIELD_GROUPS, getEditorFieldGroupsForObject, getResidentDefinitionValue } from './stageEditorCatalog.js';
 import { GOAL_DEFAULT_VARIANT, GOAL_VARIANT_OPTIONS } from '../data/goalDefs.js';
+import { DOOR_OPEN_CONDITIONS } from '../data/doorDefs.js';
 import { ASSET_MANIFEST } from '../data/assetManifest.js';
 import { hasValidationErrors, validateEditorStage } from './stageEditorValidation.js';
 import { createStageDownloadName, parseStageJson, resolveStageSourcePath, serializeStageToJsModule, serializeStageToJson } from './stageEditorSerializer.js';
@@ -18,12 +20,17 @@ import { stageEditorCanvasViewMethods } from './StageEditorCanvasView.js';
 import { EDITOR_CANVAS_OUTSIDE_MARGIN, EDITOR_CANVAS_ZOOM } from './stageEditorGeometry.js';
 import { EDITOR_DUPLICATE_OFFSET, moveEditorObjectByDelta, placeEditorObjectInVisibleRect } from './stageEditorObjectMutation.js';
 import { createEditorSelectionKey, getEditorCollectionObjects, parseEditorSelectionKey } from './stageEditorSelection.js';
+import { getEditorSwitchTargetImageKey } from './stageEditorObjectMetrics.js';
 import { createFieldset, createInputField, createOption, fieldKeySet, flattenFieldGroups, getFieldRootKey, getObjectLabel, getPathValue, inferFieldFromValue, isObject, isRuntimePrivateEditorKey, normalizeFieldValue, setPathValue, setText } from './stageEditorFields.js';
 
 
 const EDITABLE_COLLECTIONS = Object.keys(EDITOR_CATEGORY_DEFS);
-const RESIDENT_TYPE_RESET_KEEP_KEYS = new Set(['x', 'y', 'minX', 'maxX']);
-const PLATFORM_KIND_RESET_KEEP_KEYS = new Set(['x', 'y', 'w', 'h', 'active', 'switchId', 'activeWhenOn']);
+const RESIDENT_TYPE_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'minX', 'maxX']);
+const PLATFORM_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'w', 'h', 'active', 'switchId', 'activeWhenOn']);
+const ITEM_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'value']);
+const DOOR_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'w', 'h']);
+const SWITCH_GIMMICK_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'w', 'h']);
+const SWITCH_TARGET_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'x', 'y', 'w', 'h', 'switchId', 'activeWhenOn', 'solid']);
 const SPECIAL_EVENT_KIND_RESET_KEEP_KEYS = new Set(['id', 'groupId', 'active', 'x', 'y', 'w', 'h']);
 
 
@@ -51,6 +58,7 @@ export class StageEditorApp {
     this.stageSelect = $('stage-select');
     this.categoryTabs = $('category-tabs');
     this.objectList = $('object-list');
+    this.objectPresetSelect = $('object-preset-select');
     this.propertyForm = $('property-form');
     this.basicForm = $('basic-form');
     this.validationList = $('validation-list');
@@ -79,17 +87,17 @@ export class StageEditorApp {
   }
 
   init() {
-    this.preloadBackgrounds();
+    this.preloadEditorAssets();
     this.renderStageSelect();
     this.renderCategoryTabs();
     this.bindEvents();
     this.loadStage(this.stageSelect.value || this.stage.id, { pushHistory: false });
   }
 
-  preloadBackgrounds() {
-    this.preloadEditorAssets();
-  }
-
+  /**
+   * 更新ルール: ステージエディタは配置中の即時プレビューとカテゴリ切替の軽さを優先するため、
+   * ゲーム本体の段階ロードとは分けて、エディタ起動時に全画像を事前読み込みする。
+   */
   preloadEditorAssets() {
     if (typeof Image === 'undefined') return;
     for (const [key, src] of Object.entries(ASSET_MANIFEST.images)) {
@@ -137,6 +145,31 @@ export class StageEditorApp {
     }
   }
 
+  renderObjectPresetSelect() {
+    if (!this.objectPresetSelect) return;
+    const presets = EDITOR_OBJECT_PRESETS[this.selectedCategory] || [];
+    this.objectPresetSelect.innerHTML = '';
+    if (this.selectedCategory === 'points' || !presets.length) {
+      this.objectPresetSelect.append(createOption('', '追加なし'));
+      this.objectPresetSelect.disabled = true;
+      this.updateAddObjectButton();
+      return;
+    }
+    presets.forEach((preset, index) => {
+      this.objectPresetSelect.append(createOption(index, preset.label || `${EDITOR_CATEGORY_DEFS[this.selectedCategory]?.label || '配置'} ${index + 1}`));
+    });
+    this.objectPresetSelect.disabled = false;
+    if (!this.objectPresetSelect.value) this.objectPresetSelect.value = '0';
+    this.updateAddObjectButton();
+  }
+
+  updateAddObjectButton() {
+    const button = $('add-object-btn');
+    if (!button) return;
+    const presets = EDITOR_OBJECT_PRESETS[this.selectedCategory] || [];
+    button.disabled = this.selectedCategory === 'points' || !presets.length;
+  }
+
   bindEvents() {
     this.stageSelect.addEventListener('change', () => this.loadStage(this.stageSelect.value));
     $('new-stage-btn').addEventListener('click', () => this.newStage());
@@ -144,6 +177,7 @@ export class StageEditorApp {
     $('undo-btn').addEventListener('click', () => this.undo());
     $('redo-btn').addEventListener('click', () => this.redo());
     $('add-object-btn').addEventListener('click', () => this.addSelectedObject());
+    this.objectPresetSelect?.addEventListener('change', () => this.updateAddObjectButton());
     $('duplicate-object-btn')?.addEventListener('click', () => this.duplicateSelectedObjects());
     $('delete-object-btn').addEventListener('click', () => this.deleteSelectedObject());
     $('export-js-btn').addEventListener('click', () => this.updateOutput('js'));
@@ -185,8 +219,8 @@ export class StageEditorApp {
       this.renderAll();
     });
 
-    this.basicForm.addEventListener('input', event => this.updateStageField(event));
-    this.propertyForm.addEventListener('input', event => this.updateObjectField(event));
+    this.basicForm.addEventListener('change', event => this.updateStageField(event));
+    this.propertyForm.addEventListener('change', event => this.updateObjectField(event));
 
     this.canvas.addEventListener('mousedown', event => this.startCanvasDrag(event));
     this.canvas.parentElement?.addEventListener('wheel', event => this.handleCanvasWheel(event), { passive: false });
@@ -270,6 +304,7 @@ export class StageEditorApp {
   renderAll() {
     this.stage = normalizeStageDefinition(this.stage);
     this.renderCategoryTabs();
+    this.renderObjectPresetSelect();
     this.renderBasicForm();
     this.renderObjectList();
     this.renderPropertyForm();
@@ -539,9 +574,12 @@ export class StageEditorApp {
   updateStageField(event) {
     const input = event.target.closest('[data-key]');
     if (!input) return;
+    const field = EDITOR_FIELD_GROUPS.stage.find(item => item.key === input.dataset.key) || { key: input.dataset.key };
+    const value = normalizeFieldValue(input, field, this.stage[input.dataset.key]);
+    if (input.dataset.invalidJson === '1') return;
     this.pushHistory();
-    const field = EDITOR_FIELD_GROUPS.stage.find(item => item.key === input.dataset.key);
-    this.stage[input.dataset.key] = normalizeFieldValue(input, field || { key: input.dataset.key });
+    this.stage[input.dataset.key] = value;
+    if (input.dataset.key === 'id') this.stage.route = null;
     if (input.dataset.key === 'width' && this.stage.areas.length === 1) this.stage.areas[0].endX = this.stage.width;
     this.renderAfterFieldEdit();
   }
@@ -551,10 +589,11 @@ export class StageEditorApp {
     if (!input) return;
     const object = this.getSelectedObject();
     if (!object) return;
-    this.pushHistory();
     const fields = this.createFieldsForObject(object);
     const field = fields.find(item => item.key === input.dataset.key) || { key: input.dataset.key };
-    const value = normalizeFieldValue(input, field);
+    const value = normalizeFieldValue(input, field, getPathValue(object, field.key));
+    if (input.dataset.invalidJson === '1') return;
+    this.pushHistory();
     let nextObject = cloneEditorValue(object);
     let requiresPropertyFormRender = false;
     if (this.selectedCategory === 'residents' && field.key === 'type') {
@@ -562,6 +601,21 @@ export class StageEditorApp {
       requiresPropertyFormRender = true;
     } else if (this.selectedCategory === 'platforms' && field.key === 'kind') {
       nextObject = this.createPlatformAfterKindChange(nextObject, value);
+      requiresPropertyFormRender = true;
+    } else if (this.selectedCategory === 'items' && field.key === 'kind') {
+      nextObject = this.createItemAfterKindChange(nextObject, value);
+      requiresPropertyFormRender = true;
+    } else if (this.selectedCategory === 'doors' && (field.key === 'kind' || field.key === 'openCondition')) {
+      nextObject = this.createDoorAfterKindOrConditionChange(nextObject, field.key, value);
+      requiresPropertyFormRender = true;
+    } else if (this.selectedCategory === 'switchGimmicks' && field.key === 'kind') {
+      nextObject = this.createSwitchGimmickAfterKindChange(nextObject, value);
+      requiresPropertyFormRender = true;
+    } else if (this.selectedCategory === 'switchTargets' && field.key === 'kind') {
+      nextObject = this.createSwitchTargetAfterKindChange(nextObject, value);
+      requiresPropertyFormRender = true;
+    } else if (this.selectedCategory === 'switchTargets' && field.key === 'variant') {
+      nextObject = this.createSwitchTargetAfterVariantChange(nextObject, value);
       requiresPropertyFormRender = true;
     } else if (this.selectedCategory === 'specialEvents' && field.key === 'kind') {
       nextObject = this.createSpecialEventAfterKindChange(nextObject, value);
@@ -590,6 +644,65 @@ export class StageEditorApp {
     return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('platforms', nextObject));
   }
 
+  clonePresetValue(category, predicate, fallback = {}) {
+    const preset = (EDITOR_OBJECT_PRESETS[category] || []).find(predicate);
+    return cloneEditorValue(preset?.value || fallback);
+  }
+
+  copyKeys(source, target, keys) {
+    for (const key of keys) {
+      if (source[key] !== undefined) target[key] = cloneEditorValue(source[key]);
+    }
+    return target;
+  }
+
+  createItemAfterKindChange(object, nextKind) {
+    const nextObject = this.clonePresetValue('items', item => item.value?.kind === nextKind, { kind: nextKind });
+    nextObject.kind = nextKind;
+    this.copyKeys(object, nextObject, ITEM_KIND_RESET_KEEP_KEYS);
+    return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('items', nextObject));
+  }
+
+  createDoorAfterKindOrConditionChange(object, changedKey, value) {
+    const wantsClockDoor = changedKey === 'kind' && value === 'carrotClockDoor';
+    const wantsNormalDoor = changedKey === 'kind' && value !== 'carrotClockDoor';
+    const nextCondition = changedKey === 'openCondition'
+      ? value
+      : wantsNormalDoor
+        ? (object.openCondition || DOOR_OPEN_CONDITIONS.SWITCH)
+        : object.openCondition;
+    const nextObject = wantsClockDoor
+      ? this.clonePresetValue('doors', item => item.value?.kind === 'carrotClockDoor', { kind: 'carrotClockDoor' })
+      : this.clonePresetValue('doors', item => (item.value?.openCondition || DOOR_OPEN_CONDITIONS.SWITCH) === (nextCondition || DOOR_OPEN_CONDITIONS.SWITCH) && item.value?.kind !== 'carrotClockDoor', { openCondition: nextCondition || DOOR_OPEN_CONDITIONS.SWITCH });
+    this.copyKeys(object, nextObject, DOOR_KIND_RESET_KEEP_KEYS);
+    if (wantsNormalDoor) delete nextObject.kind;
+    if (!wantsClockDoor) nextObject.openCondition = nextCondition || DOOR_OPEN_CONDITIONS.SWITCH;
+    return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('doors', nextObject));
+  }
+
+  createSwitchGimmickAfterKindChange(object, nextKind) {
+    const nextObject = this.clonePresetValue('switchGimmicks', item => item.value?.kind === nextKind, { kind: nextKind });
+    nextObject.kind = nextKind;
+    this.copyKeys(object, nextObject, SWITCH_GIMMICK_KIND_RESET_KEEP_KEYS);
+    return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('switchGimmicks', nextObject));
+  }
+
+  createSwitchTargetAfterKindChange(object, nextKind) {
+    const nextObject = this.clonePresetValue('switchTargets', item => item.value?.kind === nextKind, { kind: nextKind });
+    nextObject.kind = nextKind;
+    this.copyKeys(object, nextObject, SWITCH_TARGET_KIND_RESET_KEEP_KEYS);
+    if (!nextObject.imageKey) nextObject.imageKey = getEditorSwitchTargetImageKey(nextObject);
+    return this.applyFieldDefaults(nextObject, getEditorFieldGroupsForObject('switchTargets', nextObject));
+  }
+
+  createSwitchTargetAfterVariantChange(object, nextVariant) {
+    const nextObject = cloneEditorValue(object);
+    nextObject.variant = nextVariant;
+    delete nextObject.imageKey;
+    nextObject.imageKey = getEditorSwitchTargetImageKey(nextObject);
+    return nextObject;
+  }
+
   applyFieldDefaults(object, fieldGroups) {
     const nextObject = cloneEditorValue(object);
     for (const field of flattenFieldGroups(fieldGroups)) {
@@ -615,7 +728,8 @@ export class StageEditorApp {
     const def = EDITOR_CATEGORY_DEFS[this.selectedCategory];
     if (!presets.length || this.selectedCategory === 'points') return;
     this.pushHistory();
-    let object = cloneEditorValue(presets[0].value);
+    const presetIndex = Math.max(0, Math.min(presets.length - 1, Number(this.objectPresetSelect?.value || 0)));
+    let object = cloneEditorValue(presets[presetIndex].value);
     object = placeEditorObjectInVisibleRect(this.selectedCategory, object, this.getVisibleStageRect());
     if (def.singleton) {
       this.stage[def.collection] = object;

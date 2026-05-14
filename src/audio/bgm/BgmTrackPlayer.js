@@ -1,9 +1,9 @@
 /**
  * 責務: BGMトラックイベントを純粋なPCMへ段階レンダーし、完成したAudioBufferだけをWebAudio標準のloop再生で鳴らす。
- * 更新ルール: BGM再生中に音符ごとのOscillator/Gain/Filter/Noiseノードを生成しない。曲データは data/audio/bgm/ に置き、このクラスはPCM化・キャッシュ・再生/停止だけを扱う。
+ * 更新ルール: BGM再生中に音符ごとのOscillator/Gain/Filter/Noiseノードを生成しない。曲データは data/audio/bgm/ に置き、このクラスはPCM化・内容ハッシュ付きキャッシュ・再生/停止だけを扱う。
  */
 const SECTION_ORDER = Object.freeze(['intro', 'A', 'APrime', 'B', 'C']);
-const LOOP_ORDER = Object.freeze(['A', 'APrime', 'B', 'C']);
+const INTRO_SECTION = 'intro';
 
 const DEFAULT_INSTRUMENTS = Object.freeze({
   lead: Object.freeze({ kind: 'bell', type: 'triangle', attack: 0.012, decay: 0.18, sustain: 0.22, release: 0.34, gain: 0.62, filter: 5200 }),
@@ -54,9 +54,20 @@ function sectionBeats(track, name) {
   return bars * beatsPerBar(track);
 }
 
+function sectionOrderIndex(name) {
+  const index = SECTION_ORDER.indexOf(name);
+  return index === -1 ? 999 : index;
+}
+
+function sectionPlaybackNames(track, { includeIntro = true } = {}) {
+  const names = Object.keys(track?.sections || {}).filter(name => includeIntro || name !== INTRO_SECTION);
+  return names.sort((a, b) => sectionOrderIndex(a) - sectionOrderIndex(b) || a.localeCompare(b, 'ja'));
+}
+
 function existingLoopOrder(track) {
-  const order = LOOP_ORDER.filter(name => track?.sections?.[name]);
-  return order.length ? order : SECTION_ORDER.filter(name => name !== 'intro' && track?.sections?.[name]);
+  const loopNames = sectionPlaybackNames(track, { includeIntro: false });
+  if (loopNames.length) return loopNames;
+  return track?.sections?.[INTRO_SECTION] ? [INTRO_SECTION] : [];
 }
 
 function buildTimeline(track, order) {
@@ -339,7 +350,7 @@ function expandEvents(track, events) {
     .sort((a, b) => (a.beat ?? 0) - (b.beat ?? 0));
 }
 
-async function renderPcm(ctx, track, events, durationSeconds, sampleRate) {
+async function renderPcm(track, events, durationSeconds, sampleRate) {
   const length = Math.max(1, Math.ceil(durationSeconds * sampleRate));
   const pcm = createPcm(length);
   const expanded = expandEvents(track, events);
@@ -347,21 +358,21 @@ async function renderPcm(ctx, track, events, durationSeconds, sampleRate) {
   return pcm;
 }
 
-async function renderLoopPcm(ctx, track, loopTimeline, sampleRate) {
+async function renderLoopPcm(track, loopTimeline, sampleRate) {
   const loopFrames = Math.max(1, Math.round(loopTimeline.totalSeconds * sampleRate));
   const events = [];
   for (let pass = 0; pass < LOOP_RENDER_PASSES; pass += 1) {
     events.push(...collectEvents(track, loopTimeline.sections, pass * loopTimeline.totalBeats));
   }
-  const rendered = await renderPcm(ctx, track, events, (loopFrames * LOOP_RENDER_PASSES) / sampleRate, sampleRate);
+  const rendered = await renderPcm(track, events, (loopFrames * LOOP_RENDER_PASSES) / sampleRate, sampleRate);
   return copyPcmSlice(rendered, loopFrames, loopFrames);
 }
 
-async function renderEntryPcm(ctx, track, introTimeline, loopTimeline, sampleRate) {
+async function renderEntryPcm(track, introTimeline, loopTimeline, sampleRate) {
   if (!introTimeline.sections.length) return null;
   const introEvents = collectEvents(track, introTimeline.sections, 0);
   const loopEvents = collectEvents(track, loopTimeline.sections, introTimeline.totalBeats);
-  return renderPcm(ctx, track, [...introEvents, ...loopEvents], introTimeline.totalSeconds + loopTimeline.totalSeconds, sampleRate);
+  return renderPcm(track, [...introEvents, ...loopEvents], introTimeline.totalSeconds + loopTimeline.totalSeconds, sampleRate);
 }
 
 function renderSampleRate(ctx) {
@@ -369,15 +380,15 @@ function renderSampleRate(ctx) {
 }
 
 async function renderTrackBuffers(ctx, track) {
-  const introOrder = track?.sections?.intro ? ['intro'] : [];
   const loopOrder = existingLoopOrder(track);
+  const introOrder = track?.sections?.[INTRO_SECTION] && !loopOrder.includes(INTRO_SECTION) ? [INTRO_SECTION] : [];
   if (!loopOrder.length) return null;
 
   const introTimeline = buildTimeline(track, introOrder);
   const loopTimeline = buildTimeline(track, loopOrder);
   const sampleRate = renderSampleRate(ctx);
-  const loopPcm = await renderLoopPcm(ctx, track, loopTimeline, sampleRate);
-  const entryPcm = await renderEntryPcm(ctx, track, introTimeline, loopTimeline, sampleRate);
+  const loopPcm = await renderLoopPcm(track, loopTimeline, sampleRate);
+  const entryPcm = await renderEntryPcm(track, introTimeline, loopTimeline, sampleRate);
   applySharedHeadroom([entryPcm, loopPcm]);
 
   return {
@@ -386,8 +397,24 @@ async function renderTrackBuffers(ctx, track) {
   };
 }
 
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (!value || typeof value !== 'object') return JSON.stringify(value);
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+
 function cacheKey(track, ctx) {
-  return `${track?.id || 'unknown'}:${renderSampleRate(ctx)}`;
+  const identity = stableStringify({
+    id: track?.id,
+    tempo: track?.tempo,
+    meter: track?.meter,
+    key: track?.key,
+    introBars: track?.introBars,
+    sectionBars: track?.sectionBars,
+    instruments: track?.instruments,
+    sections: track?.sections,
+  });
+  return `${track?.id || 'unknown'}:${renderSampleRate(ctx)}:${fastHash(identity)}`;
 }
 
 function getRenderCacheForContext(ctx) {
@@ -433,6 +460,7 @@ export class BgmTrackPlayer {
     this.getContext = getContext;
     this.getDestination = getDestination;
     this.currentTrackId = null;
+    this.currentTrackKey = null;
     this.track = null;
     this.bus = null;
     this.sources = new Set();
@@ -447,12 +475,14 @@ export class BgmTrackPlayer {
     const ctx = this.ctx;
     const destination = this.getDestination?.();
     if (!ctx || !destination || !track) return;
-    if (this.currentTrackId === track.id && this.bus) return;
+    const nextTrackKey = cacheKey(track, ctx);
+    if (this.currentTrackKey === nextTrackKey && this.bus) return;
 
     this.stop(STOP_FADE_SEC);
     const token = this.renderToken + 1;
     this.renderToken = token;
     this.currentTrackId = track.id;
+    this.currentTrackKey = nextTrackKey;
     this.track = track;
     this.bus = ctx.createGain();
     this.bus.gain.setValueAtTime(MIN_GAIN, ctx.currentTime);
@@ -461,7 +491,7 @@ export class BgmTrackPlayer {
 
     getRenderedBuffers(ctx, track)
       .then((buffers) => {
-        if (this.renderToken !== token || this.currentTrackId !== track.id || !this.bus || !buffers?.loopBuffer) return;
+        if (this.renderToken !== token || this.currentTrackKey !== nextTrackKey || !this.bus || !buffers?.loopBuffer) return;
         this.startBuffers(buffers, ctx.currentTime + PLAY_START_LEAD_SEC);
       })
       .catch(() => {
@@ -519,6 +549,7 @@ export class BgmTrackPlayer {
     this.sources.clear();
 
     this.currentTrackId = null;
+    this.currentTrackKey = null;
     this.track = null;
     this.bus = null;
   }

@@ -3,6 +3,7 @@
  * 更新ルール: ゲーム固有ルールを持ち込まず、汎用基盤として保つ。
  * 更新ルール: 物理/ゲーム更新は固定ステップで進め、描画だけrequestAnimationFrameへ同期する。
  * 更新ルール: 初期Sceneの差し替えはstart(options)で受け取り、Scene決定処理を各Sceneへ分散しない。
+ * 更新ルール: 起動時は全画像ロードを行わず、必要キーの算出はdata/assetLoadPlans.jsへ委譲する。
  * 更新ルール: 画面全体で共通利用するUIオーバーレイは専用Controllerへ委譲し、GameAppは参照の保持に留める。
  */
 import { GAME_VIEW } from '../config/view.js';
@@ -15,6 +16,7 @@ import { SaveSystem } from '../systems/SaveSystem.js';
 import { AssetSystem } from '../systems/AssetSystem.js';
 import { AudioSystem } from '../audio/AudioSystem.js';
 import { ASSET_MANIFEST } from '../data/assetManifest.js';
+import { getBootAssetKeys } from '../data/assetLoadPlans.js';
 import { DebugSettings } from '../debug/DebugSettings.js';
 import { DebugOverlay } from '../debug/DebugOverlay.js';
 import { ConfirmDialogController } from '../ui/dialogs/ConfirmDialogController.js';
@@ -58,9 +60,10 @@ export class GameApp {
 
   async start(options = {}) {
     this.resize();
-    await this.assets.loadManifest(ASSET_MANIFEST);
+    this.assets.setManifest(ASSET_MANIFEST);
     const initialScene = options.initialScene || SCENES.TITLE;
     const initialParams = options.initialParams || {};
+    await this.assets.loadKeys(getBootAssetKeys(initialScene, initialParams));
     await this.sceneManager.change(initialScene, initialParams);
     this.loop.start();
   }

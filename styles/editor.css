@@ -116,6 +116,10 @@ select, input, textarea {
   background: rgba(255,255,255,0.86);
   outline: none;
 }
+.editor-json-error {
+  border-color: rgba(205, 64, 105, 0.94);
+  background: rgba(255, 236, 242, 0.96);
+}
 textarea {
   min-height: 0;
   resize: none;
@@ -156,6 +160,13 @@ textarea {
 .editor-field input[type="checkbox"] { width: 22px; height: 22px; }
 .editor-field textarea { min-height: 88px; }
 .editor-toolbar { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; min-width: 0; }
+.editor-toolbar-actions .object-preset-select {
+  width: min(220px, 30vw);
+  min-width: 150px;
+  max-width: 240px;
+  font-size: 12px;
+  font-weight: 800;
+}
 .category-tabs { display: flex; gap: 6px; flex-wrap: wrap; min-width: 0; overflow: auto; max-height: 76px; padding: 1px 3px 5px 1px; }
 .category-tabs button, .object-list button { border-radius: 13px; padding: 7px 9px; font-size: 12px; }
 .category-tabs button.is-active, .object-list button.is-active {

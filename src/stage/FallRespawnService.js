@@ -3,7 +3,6 @@
  * 更新ルール: 通常被弾や住民接触の処理はStageCollisionResolver/Playerに置き、ここでは落下復帰専用の状態だけを扱う。
  * 更新ルール: fallRespawn.safePointは通常足場更新かライド終点登録だけで変更し、その他の復帰地点管理と混ぜない。
  */
-import { PLAYER_CONFIG } from '../config/playerConfig.js';
 import { NANO_STATES } from '../config/nanoConfig.js';
 import { getStageFallOutY } from './StageFallBoundary.js';
 import { syncCameraToPlayer } from './StagePlayerScreenBoundary.js';

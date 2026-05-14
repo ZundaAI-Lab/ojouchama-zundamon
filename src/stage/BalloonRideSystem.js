@@ -332,7 +332,7 @@ export class BalloonRideSystem {
 
     if (this.session.state === BALLOON_RIDE_STATE.CLEARING) {
       this.updateRideProjectiles(dt, this.getResidents());
-      this.outcomeFlow.updateClearing(dt, activeRide, this.session);
+      this.outcomeFlow.updateClearing(dt, this.session);
       return;
     }
 
@@ -502,7 +502,7 @@ export class BalloonRideSystem {
       config,
       elapsed: this.runtime.elapsed,
       onPlayerHit: sourceRect => this.damagePlayerFromRideContact(sourceRect),
-      onBalloonHit: reason => this.popBalloon(reason),
+      onBalloonHit: () => this.popBalloon(),
     });
   }
 
@@ -521,7 +521,7 @@ export class BalloonRideSystem {
     return true;
   }
 
-  popBalloon(reason = 'hazard') {
+  popBalloon() {
     const color = this.balloonStock.pop();
     if (!color) return;
     const runtime = this.runtime;

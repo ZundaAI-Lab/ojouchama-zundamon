@@ -2,7 +2,17 @@
  * 責務: タッチ操作設定専用画面のDOMを生成する。
  * 更新ルール: 値の正規化・保存は OptionSettingsPageController / OptionDraftStore に残し、ここでは初期HTMLだけを担当する。
  * 更新ルール: リサイズ用の画面種別は wrapper class だけでCSSへ渡し、寸法計算はCSSへ集約する。
+ * 更新ルール: 機能ボタン割り当ては5列×2段の10スロットをHTML化し、各スロットの値変更はControllerへ委譲する。
+ * 更新ルール: 左利き配置時の左右反転は表示用スロットへ変換し、保存値の並びは変更しない。
  */
+import {
+  INPUT_ACTION_LABELS,
+  TOUCH_BUTTON_ACTIONS,
+  TOUCH_BUTTON_ACTION_LABELS,
+  TOUCH_BUTTON_SLOT_COUNT,
+  getTouchButtonSlotsForLayout,
+} from '../../config/controlSettings.js';
+
 export class TouchControlView {
   constructor(app) {
     this.app = app;
@@ -14,7 +24,7 @@ export class TouchControlView {
     wrapper.innerHTML = `
       <div class="menu-card option-card panel">
         <h1 class="menu-title">タッチ操作設定</h1>
-        <p class="menu-subtitle">円形方向パッドとアクションボタンの見た目を調整するの。</p>
+        <p class="menu-subtitle">円形方向パッドとアクションボタンの見た目・割り当てを調整するの。</p>
         <div class="option-scroll">
           <section class="option-section">
             <h2 class="option-section-title">タッチ操作</h2>
@@ -48,6 +58,13 @@ export class TouchControlView {
               </label>
             </div>
           </section>
+          <section class="option-section touch-button-slot-section">
+            <h2 class="option-section-title">機能ボタン割り当て</h2>
+            <p class="option-section-note">上段が1〜5、下段が6〜10。未割り当ての場所はゲーム画面に表示しません。</p>
+            <div class="touch-button-slot-grid">
+              ${this.renderButtonSlotItems(touchControls)}
+            </div>
+          </section>
         </div>
         <div class="menu-actions">
           <button class="secondary-btn" id="default-btn">既定に戻す</button>
@@ -57,5 +74,36 @@ export class TouchControlView {
       </div>
     `;
     return wrapper;
+  }
+
+  renderButtonSlotItems(touchControls) {
+    const visualButtonSlots = getTouchButtonSlotsForLayout(touchControls.buttonSlots, touchControls.layout);
+    return Array.from({ length: TOUCH_BUTTON_SLOT_COUNT }, (_, index) => {
+      const action = visualButtonSlots[index] || '';
+      const slotNumber = index + 1;
+      return `
+        <label class="touch-button-slot-item" data-menu-item="true" data-option="touchButtonSlot" data-touch-button-slot="${index}" tabindex="0">
+          <span class="touch-button-slot-number">${slotNumber}</span>
+          <span class="touch-button-slot-value" data-option-value="touchButtonSlot${index}">${this.getActionShortLabel(action)}</span>
+          <select class="touch-button-slot-select" data-touch-button-slot-select="${index}">
+            ${this.renderButtonSlotOptions(action)}
+          </select>
+        </label>
+      `;
+    }).join('');
+  }
+
+  renderButtonSlotOptions(selectedAction) {
+    const options = ['<option value="">未割り当て</option>'];
+    for (const action of TOUCH_BUTTON_ACTIONS) {
+      const shortLabel = TOUCH_BUTTON_ACTION_LABELS[action] || action;
+      const longLabel = INPUT_ACTION_LABELS[action] || action;
+      options.push(`<option value="${action}" ${selectedAction === action ? 'selected' : ''}>${shortLabel}：${longLabel}</option>`);
+    }
+    return options.join('');
+  }
+
+  getActionShortLabel(action) {
+    return action ? (TOUCH_BUTTON_ACTION_LABELS[action] || action) : '未割り当て';
   }
 }

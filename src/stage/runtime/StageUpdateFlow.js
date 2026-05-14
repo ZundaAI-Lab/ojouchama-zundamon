@@ -6,10 +6,12 @@
  * 更新ルール: クリアタイム用の経過時間は、会話・チュートリアル・ポーズなどの操作不能状態では加算しない。
  * 更新ルール: 報酬豆コインの地形落下はRewardCoinDropServiceへ委譲し、通常ステージ更新では衝突ワールドを共有する。
  * 更新ルール: 汎用ステージイベントは物理接地とエリア進行が確定した後にStageEventSystemへ委譲する。
+ * 更新ルール: プレイヤー表示状態は物理移動と足場効果でonGround/vyが確定した後に更新する。
  */
 import { createResidentBehaviorContext } from '../../actors/resident/behavior/ResidentBehaviorContext.js';
 import { ResidentGroupSystem } from '../../actors/resident/ResidentGroupSystem.js';
 import { INPUT_ACTIONS } from '../../config/inputActions.js';
+import { PLAYER_CONFIG } from '../../config/playerConfig.js';
 import { BossEncounterController } from '../BossEncounterController.js';
 import { isNormalResident, keepResidentAfterFrame } from '../../actors/resident/ResidentScope.js';
 import { PlatformGimmickSystem } from '../PlatformGimmickSystem.js';
@@ -127,11 +129,13 @@ function updateNormalStageFrame(runtime, dt) {
   runtime.physics.moveActor(runtime.player, dt, collisionWorld.playerSolids, {
     useSlopeSurface: true,
     slopeSurfaces: collisionWorld.slopeSurfaces,
+    stepUpHeight: PLAYER_CONFIG.STEP_UP_HEIGHT,
   });
   clampPlayerToHorizontalScreen(runtime);
   runtime.fallRespawn.updateSafePoint(runtime);
   runtime.nano?.updateMotion(dt, runtime);
   runtime.resolvePlatformEffects(dt);
+  runtime.player.updateVisualState();
   runtime.updateAreaProgress();
   StageCheckpointService.updateTouchedCheckpoints(runtime);
   if (runtime.stageEventSystem?.update(dt)) {
@@ -196,9 +200,11 @@ export function updateStageNanoRescueEvent(runtime, dt) {
   runtime.physics.moveActor(runtime.player, dt, collisionWorld.playerSolids, {
     useSlopeSurface: true,
     slopeSurfaces: collisionWorld.slopeSurfaces,
+    stepUpHeight: PLAYER_CONFIG.STEP_UP_HEIGHT,
   });
   clampPlayerToHorizontalScreen(runtime);
   runtime.fallRespawn.updateSafePoint(runtime);
+  runtime.player.updateVisualState();
   runtime.nanoRescueEvent.update(dt);
   runtime.particleSystem.update(dt);
   runtime.particles = runtime.particleSystem.particles;

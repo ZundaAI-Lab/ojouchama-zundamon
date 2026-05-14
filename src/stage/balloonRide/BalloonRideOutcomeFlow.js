@@ -81,7 +81,7 @@ export class BalloonRideOutcomeFlow {
     this.onReset();
   }
 
-  updateClearing(dt, activeRide, session) {
+  updateClearing(dt, session) {
     session.clearTimer -= dt;
     this.effectStore.update(dt);
     if (this.clearFloat) {

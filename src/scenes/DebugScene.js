@@ -8,7 +8,6 @@ import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { DebugView } from '../ui/views/DebugView.js';
-import { runAllDebugTests } from '../debug/tests/runAllDebugTests.js';
 import { WORLDS } from '../data/worlds.js';
 import { drawCoverBackground } from '../utils/background.js';
 
@@ -107,9 +106,25 @@ export class DebugScene extends BaseScene {
       this.app.audio.resume();
       this.app.audio.playSfx('ui_decide');
       this.view.showTestRunning(wrapper);
-      const result = await runAllDebugTests();
-      this.view.showTestResult(wrapper, result);
-      this.app.audio.playSfx(result.failed > 0 ? 'ui_cancel' : 'ui_decide');
+      try {
+        const { runAllDebugTests } = await import('../debug/tests/runAllDebugTests.js');
+        const result = await runAllDebugTests();
+        this.view.showTestResult(wrapper, result);
+        this.app.audio.playSfx(result.failed > 0 ? 'ui_cancel' : 'ui_decide');
+      } catch (error) {
+        this.view.showTestResult(wrapper, {
+          passed: 0,
+          failed: 1,
+          durationMs: 0,
+          results: [{
+            ok: false,
+            suite: 'DebugScene',
+            name: '自動テスト読込',
+            message: error?.message || String(error),
+          }],
+        });
+        this.app.audio.playSfx('ui_cancel');
+      }
     });
 
     wrapper.querySelector('#debug-title-btn').addEventListener('click', () => {

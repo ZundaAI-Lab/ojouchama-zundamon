@@ -1,21 +1,32 @@
 /**
  * 責務: ステージ中のタッチ操作DOM生成と破棄を担当する。
- * 更新ルール: 入力状態の解釈はInputSystem側に置き、DOM操作に限定する。左側の円形方向パッドは中央からの位置を仮想方向入力へ変換し、ジャンプは飛ボタンだけで扱う。
- * 更新ルール: なのボタンだけはタッチ固有のフリックを仮想方向入力＋なのボタン押下パルスへ変換する。
+ * 更新ルール: 入力状態の解釈はInputSystem側に置き、DOM操作に限定する。左側の円形方向パッドは中央からの位置を仮想方向入力へ変換し、ジャンプは割り当て済みの飛ボタンだけで扱う。
+ * 更新ルール: 魔法・なのちゃんボタンはタッチ固有のフリックを発射専用方向としてInputSystemへ渡し、移動用の仮想方向入力とは混ぜない。
  * 更新ルール: タッチ操作の配置・サイズ・濃度はセーブ設定から読み込み、キーコンフィグとは別設定として扱う。
+ * 更新ルール: 機能ボタンは5列×2段の10スロットへ割り当て、未割り当てスロットはDOMボタンを生成しない。
+ * 更新ルール: 左利き配置時は保存値を表示用スロットへ左右反転してからDOM配置する。
  * 更新ルール: 画面遷移などでpointerupを受け取れない場合に備え、このViewが押下した仮想入力はdestroy時に必ず解除する。
  */
 import { INPUT_ACTIONS } from '../../config/inputActions.js';
-import { DEFAULT_TOUCH_CONFIG, normalizeTouchConfig } from '../../config/controlSettings.js';
+import {
+  DEFAULT_TOUCH_CONFIG,
+  TOUCH_BUTTON_ACTION_LABELS,
+  TOUCH_BUTTON_SLOT_COLUMNS,
+  getTouchButtonSlotsForLayout,
+  normalizeTouchConfig,
+} from '../../config/controlSettings.js';
 
 const DIRECTION_PAD_MAX_OFFSET_RATIO = 0.26;
-const NANO_FLICK_MIN_DISTANCE = 18;
-const NANO_PULSE_MS = 50;
+const ACTION_FLICK_MIN_DISTANCE = 18;
+const ACTION_PULSE_MS = 50;
+const FLICK_AXIS_RATIO = 0.55;
+const FLICK_ACTIONS = new Set([INPUT_ACTIONS.MAGIC, INPUT_ACTIONS.NANO]);
 
 export class TouchControlsView {
   constructor(app) {
     this.app = app;
     this.root = null;
+    this.buttonGrid = null;
     this.settings = normalizeTouchConfig(DEFAULT_TOUCH_CONFIG);
     this.activeVirtualActions = new Map();
   }
@@ -33,13 +44,8 @@ export class TouchControlsView {
 
     const right = document.createElement('div');
     right.className = 'touch-right';
-    right.append(
-      this.makeBtn('茶', INPUT_ACTIONS.TEA, true),
-      this.makeBtn('礼', INPUT_ACTIONS.BOW, true),
-      this.makeNanoBtn('なの'),
-      this.makeBtn('魔法', INPUT_ACTIONS.MAGIC, true),
-      this.makeBtn('飛', INPUT_ACTIONS.JUMP, true, 'jump'),
-    );
+    this.buttonGrid = this.makeButtonGrid();
+    right.append(this.buttonGrid);
     this.root.append(left, right);
     this.app.uiRoot.append(this.root);
     return this.root;
@@ -60,7 +66,13 @@ export class TouchControlsView {
 
   reloadSettings() {
     this.settings = this.loadSettings();
+    this.clearTouchVirtualActions();
     this.applyRootSettings();
+    if (this.buttonGrid) {
+      const nextGrid = this.makeButtonGrid();
+      this.buttonGrid.replaceWith(nextGrid);
+      this.buttonGrid = nextGrid;
+    }
   }
 
   setTouchVirtual(action, isDown) {
@@ -185,6 +197,27 @@ export class TouchControlsView {
     return pad;
   }
 
+  makeButtonGrid() {
+    const grid = document.createElement('div');
+    grid.className = 'touch-button-grid';
+    const visualButtonSlots = getTouchButtonSlotsForLayout(this.settings.buttonSlots, this.settings.layout);
+    visualButtonSlots.forEach((action, index) => {
+      if (!action) return;
+      const button = this.makeTouchButton(action);
+      button.dataset.touchSlot = String(index + 1);
+      button.style.gridColumn = String((index % TOUCH_BUTTON_SLOT_COLUMNS) + 1);
+      button.style.gridRow = String(Math.floor(index / TOUCH_BUTTON_SLOT_COLUMNS) + 1);
+      grid.append(button);
+    });
+    return grid;
+  }
+
+  makeTouchButton(action) {
+    const text = TOUCH_BUTTON_ACTION_LABELS[action] || action;
+    if (FLICK_ACTIONS.has(action)) return this.makeFlickActionButton(text, action);
+    return this.makeBtn(text, action, true, action === INPUT_ACTIONS.JUMP ? 'jump' : '');
+  }
+
   makeBtn(text, actions, small = false, variant = '') {
     const btn = document.createElement('button');
     btn.className = ['touch-btn', small ? 'small' : '', variant ? `touch-btn-${variant}` : ''].filter(Boolean).join(' ');
@@ -214,7 +247,7 @@ export class TouchControlsView {
     return btn;
   }
 
-  makeNanoBtn(text) {
+  makeFlickActionButton(text, action) {
     const btn = document.createElement('button');
     btn.className = 'touch-btn small';
     btn.textContent = text;
@@ -242,8 +275,9 @@ export class TouchControlsView {
     btn.addEventListener('pointerup', e => {
       e.preventDefault();
       if (pointerId !== e.pointerId) return;
-      const actions = this.getNanoFlickActions(e.clientX - startX, e.clientY - startY);
-      this.pulseNano(actions);
+      const direction = this.getFlickDirection(e.clientX - startX, e.clientY - startY);
+      if (direction) this.app.input.setActionAim?.(action, direction);
+      this.pulseAction(action);
       clearCapture(e);
     });
 
@@ -259,24 +293,23 @@ export class TouchControlsView {
     return btn;
   }
 
-  getNanoFlickActions(dx, dy) {
-    if (Math.hypot(dx, dy) < NANO_FLICK_MIN_DISTANCE) return [];
-    const actions = [];
-    if (Math.abs(dx) >= NANO_FLICK_MIN_DISTANCE * 0.55) {
-      actions.push(dx > 0 ? INPUT_ACTIONS.RIGHT : INPUT_ACTIONS.LEFT);
+  getFlickDirection(dx, dy) {
+    if (Math.hypot(dx, dy) < ACTION_FLICK_MIN_DISTANCE) return null;
+    const direction = { x: 0, y: 0 };
+    if (Math.abs(dx) >= ACTION_FLICK_MIN_DISTANCE * FLICK_AXIS_RATIO) {
+      direction.x = dx > 0 ? 1 : -1;
     }
-    if (Math.abs(dy) >= NANO_FLICK_MIN_DISTANCE * 0.55) {
-      actions.push(dy > 0 ? INPUT_ACTIONS.DOWN : INPUT_ACTIONS.UP);
+    if (Math.abs(dy) >= ACTION_FLICK_MIN_DISTANCE * FLICK_AXIS_RATIO) {
+      direction.y = dy > 0 ? 1 : -1;
     }
-    return actions;
+    return direction.x !== 0 || direction.y !== 0 ? direction : null;
   }
 
-  pulseNano(directionActions) {
-    const actions = [...directionActions, INPUT_ACTIONS.NANO];
-    actions.forEach(action => this.setTouchVirtual(action, true));
+  pulseAction(action) {
+    this.setTouchVirtual(action, true);
     window.setTimeout(() => {
-      actions.forEach(action => this.setTouchVirtual(action, false));
-    }, NANO_PULSE_MS);
+      this.setTouchVirtual(action, false);
+    }, ACTION_PULSE_MS);
   }
 
   setDialogueMode(active) {
@@ -287,5 +320,6 @@ export class TouchControlsView {
     this.clearTouchVirtualActions();
     this.root?.remove();
     this.root = null;
+    this.buttonGrid = null;
   }
 }

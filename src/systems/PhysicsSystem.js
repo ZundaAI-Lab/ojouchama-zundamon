@@ -6,6 +6,7 @@
  * 更新ルール: 高速移動は内部サブステップに分割し、最終位置だけの判定によるすり抜けと大きな押し出しを抑える。
  * 更新ルール: 足場の沈み・移動に乗っているActorは、PhysicsSystem内で足場移動量を先に運搬として適用する。ギミック側からActor座標を直接書き換えない。
  * 更新ルール: Actorが用途別のgetBoundsAt/setPositionFromBoundsを持つ場合は、その矩形を地面・壁との接触基準として扱う。
+ * 更新ルール: 小段差乗り越えはmoveActorのstepUpHeightオプションで明示されたActorだけに適用し、足場種別やプレイヤー固有処理は持ち込まない。
  */
 import { intersects } from '../utils/rect.js';
 import { WORLD_CONFIG } from '../config/worldConfig.js';
@@ -21,6 +22,7 @@ const SLOPE_EDGE_SAMPLE_PRIORITY_PENALTY = 8;
 const SLOPE_STICKY_PRIORITY_BONUS = 1.5;
 
 const COLLISION_EPSILON = 0.001;
+const STEP_UP_ASCEND_SPEED_LIMIT = -35;
 const FACE_CROSS_EPSILON = 0.75;
 const SPAWN_VERTICAL_BIAS = 2.5;
 const MAX_RESOLVE_PASSES = 4;
@@ -163,9 +165,25 @@ function isValidPenetration(actor, solid) {
   return p.left > 0 && p.right > 0 && p.top > 0 && p.bottom > 0;
 }
 
+function canOccupyBounds(bounds, solids, { useSlopeSurface = false, ignoreSolid = null } = {}) {
+  for (const solid of solids) {
+    if (solid === ignoreSolid || solid.active === false) continue;
+    if (useSlopeSurface && solid.surfaceOnly) continue;
+    if (intersects(bounds, solid)) return false;
+  }
+  return true;
+}
+
+function isHorizontalStepIntoFace(actor, face) {
+  if (face === 'left') return actor.vx > COLLISION_EPSILON;
+  if (face === 'right') return actor.vx < -COLLISION_EPSILON;
+  return false;
+}
+
 export class PhysicsSystem {
   moveActor(actor, dt, solids, options = {}) {
     const useSlopeSurface = options.useSlopeSurface === true;
+    const stepUpHeight = Math.max(0, Number(options.stepUpHeight) || 0);
     if (useSlopeSurface && !Array.isArray(options.slopeSurfaces)) {
       throw new Error("PhysicsSystem.moveActor requires slopeSurfaces when useSlopeSurface is true.");
     }
@@ -209,7 +227,7 @@ export class PhysicsSystem {
         this.snapActorToSlope(actor, slopeSurfaces, stepWasOnGround, stepGroundPlatform);
       }
 
-      this.resolveSolidIntersections(actor, solids, { useSlopeSurface });
+      this.resolveSolidIntersections(actor, solids, { useSlopeSurface, stepUpHeight });
 
       if (useSlopeSurface) {
         this.snapActorToSlope(actor, slopeSurfaces, actor.onGround || stepWasOnGround, actor.groundPlatform || stepGroundPlatform);
@@ -230,7 +248,7 @@ export class PhysicsSystem {
     this.resolveSolidIntersections(actor, solids, { useSlopeSurface });
   }
 
-  resolveSolidIntersections(actor, solids, { useSlopeSurface = false } = {}) {
+  resolveSolidIntersections(actor, solids, { useSlopeSurface = false, stepUpHeight = 0 } = {}) {
     for (let pass = 0; pass < MAX_RESOLVE_PASSES; pass += 1) {
       let resolved = false;
       for (const solid of solids) {
@@ -239,14 +257,14 @@ export class PhysicsSystem {
         if (!intersects(getActorBounds(actor), solid) || !isValidPenetration(actor, solid)) continue;
 
         const face = pickCollisionFace(actor, solid);
-        this.applyCollisionFace(actor, solid, face);
+        this.applyCollisionFace(actor, solid, face, { solids, useSlopeSurface, stepUpHeight });
         resolved = true;
       }
       if (!resolved) break;
     }
   }
 
-  applyCollisionFace(actor, solid, face) {
+  applyCollisionFace(actor, solid, face, options = {}) {
     const bounds = getActorBounds(actor);
     if (face === 'top') {
       setActorBoundsPosition(actor, bounds.x, solid.y - bounds.h);
@@ -261,14 +279,40 @@ export class PhysicsSystem {
       return;
     }
     if (face === 'left') {
+      if (this.tryStepUp(actor, solid, face, bounds, options)) return;
       setActorBoundsPosition(actor, solid.x - bounds.w, bounds.y);
       if (actor.vx > 0) actor.vx = 0;
       return;
     }
     if (face === 'right') {
+      if (this.tryStepUp(actor, solid, face, bounds, options)) return;
       setActorBoundsPosition(actor, solid.x + solid.w, bounds.y);
       if (actor.vx < 0) actor.vx = 0;
     }
+  }
+
+  tryStepUp(actor, solid, face, bounds, { solids = [], useSlopeSurface = false, stepUpHeight = 0 } = {}) {
+    if (stepUpHeight <= 0) return false;
+    if (!isHorizontalStepIntoFace(actor, face)) return false;
+    if (actor.vy < STEP_UP_ASCEND_SPEED_LIMIT) return false;
+
+    const footY = bounds.y + bounds.h;
+    const stepAmount = footY - solid.y;
+    if (stepAmount <= COLLISION_EPSILON || stepAmount > stepUpHeight + COLLISION_EPSILON) return false;
+
+    const targetBounds = {
+      x: bounds.x,
+      y: solid.y - bounds.h,
+      w: bounds.w,
+      h: bounds.h,
+    };
+    if (!canOccupyBounds(targetBounds, solids, { useSlopeSurface, ignoreSolid: solid })) return false;
+
+    setActorBoundsPosition(actor, targetBounds.x, targetBounds.y);
+    actor.vy = 0;
+    actor.onGround = true;
+    actor.groundPlatform = solid.ownerPlatform ?? solid;
+    return true;
   }
 
   snapActorToSlope(actor, slopeSurfaces, wasOnGround, previousGroundPlatform) {
