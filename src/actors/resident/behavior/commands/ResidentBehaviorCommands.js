@@ -3,6 +3,7 @@
  * 更新ルール: 住民名を条件分岐に使わず、behaviorParams と projectile catalog の組み合わせで差異を出す。
  * 更新ルール: 風船ライド中の画面内位置に応じた向き・狙いも、behaviorParamsのaim/emit設定として扱う。
  * 更新ルール: 風船鳥の通常時左右巡回・下方向主体の急降下は上昇スクロール専用。横スクロール時は88時点の上昇待機＋狙い急降下を維持する。
+ * 更新ルール: 地上住民の魔法ノックバックは座標クランプではなく、物理移動へ一時速度として合成する。
  */
 import { createProjectileFromCatalog } from '../../../projectile/ProjectileFactory.js';
 import { clamp } from '../../../../utils/math.js';
@@ -373,6 +374,7 @@ function moveGround(resident, dt, ctx) {
   const intendedVx = resident.vx;
   const intendedFacing = resident.facing || Math.sign(intendedVx) || 1;
   resident.vy = Math.min(resident.vy + gravity * dt, maxFall);
+  resident.applyMagicHitGroundVelocity?.();
   ctx.physics.moveActor(resident, dt, ctx.collisionWorld.residentSolids, {
     useSlopeSurface: true,
     slopeSurfaces: ctx.collisionWorld.slopeSurfaces,

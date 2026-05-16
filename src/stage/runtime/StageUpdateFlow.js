@@ -7,6 +7,7 @@
  * 更新ルール: 報酬豆コインの地形落下はRewardCoinDropServiceへ委譲し、通常ステージ更新では衝突ワールドを共有する。
  * 更新ルール: 汎用ステージイベントは物理接地とエリア進行が確定した後にStageEventSystemへ委譲する。
  * 更新ルール: プレイヤー表示状態は物理移動と足場効果でonGround/vyが確定した後に更新する。
+ * 更新ルール: 魔法命中ヒットストップ中はプレイ時間とActor更新を止め、HUD/カメラだけを維持する。
  */
 import { createResidentBehaviorContext } from '../../actors/resident/behavior/ResidentBehaviorContext.js';
 import { ResidentGroupSystem } from '../../actors/resident/ResidentGroupSystem.js';
@@ -89,6 +90,11 @@ export function updateStageRuntimeFlow(runtime, dt) {
     return;
   }
 
+  if (runtime.magicHitStopTimer > 0) {
+    updateMagicHitStopFrame(runtime, dt);
+    return;
+  }
+
   if (runtime.balloonRideSystem?.isActive()) {
     advancePlayableTime(runtime, dt);
     updateBalloonRideFrame(runtime, dt);
@@ -101,6 +107,12 @@ export function updateStageRuntimeFlow(runtime, dt) {
 
 function advancePlayableTime(runtime, dt) {
   runtime.elapsed += dt;
+}
+
+function updateMagicHitStopFrame(runtime, dt) {
+  runtime.magicHitStopTimer = Math.max(0, runtime.magicHitStopTimer - dt);
+  runtime.camera.update(dt);
+  runtime.updateHud();
 }
 
 function updateBalloonRideFrame(runtime, dt) {

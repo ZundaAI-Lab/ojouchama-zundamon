@@ -1,9 +1,11 @@
 /**
  * 責務: プレイヤー弾が迷える住民へ当たった時の共通解決を担当する。
  * 更新ルール: 弾の移動や住民AIは扱わず、命中・住民側の反応・報酬付与だけをまとめる。
+ * 更新ルール: プレイヤー魔法の命中演出はMagicHitReactionServiceへ委譲し、ここでは命中確定後に呼び出すだけにする。
  */
 import { CollisionSystem } from '../../systems/CollisionSystem.js';
 import { ResidentRewardPolicy } from './ResidentRewardPolicy.js';
+import { MagicHitReactionService } from '../MagicHitReactionService.js';
 
 export class ResidentProjectileHitService {
   static resolvePlayerProjectile(runtime, projectile, residents, options = {}) {
@@ -20,6 +22,7 @@ export class ResidentProjectileHitService {
       }
 
       projectile.alive = false;
+      MagicHitReactionService.applyToResident(runtime, resident, projectile, options.hitReaction);
       options.onHitResident?.(resident, projectile);
       resident.damage?.(projectile.damage || 1);
       if (resident.hp <= 0 || resident.alive === false) {

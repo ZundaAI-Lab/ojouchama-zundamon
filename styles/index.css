@@ -1,6 +1,7 @@
 /*
  * 責務: 全CSSファイルを現行UIの表示順に沿って読み込むスタイル入口を提供する。
  * 更新ルール: 分割CSSの上書き順を変える場合は画面表示差分を確認してから更新する。
+ * 更新ルール: スマホ専用のビューポート補正は最後に読み込み、PC表示へ影響させない。
  */
 @import './base.css';
 @import './components/scrollbar.css';
@@ -31,3 +32,4 @@
 @import './components/menu-nav.css';
 @import './screens/title-final.css';
 @import './screens/debug.css';
+@import './mobile-viewport.css';

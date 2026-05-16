@@ -2,6 +2,7 @@
  * 責務: ボス個体のHP、正気に戻った状態、無敵シールド状態、移動/攻撃パターン実行への委譲を担当する。
  * 更新ルール: ボスごとの具体的な移動・攻撃処理はBossPatterns/BossMovementPatterns/BossAttackPatternsへ分離する。
  * 更新ルール: おじぎ解除などの入力接続や弾衝突処理はstage側へ置き、ここでは状態の開始/解除と解除直後の硬直だけを扱う。
+ * 更新ルール: 魔法命中リアクションはActor状態として保持し、ノックバックは描画オフセットではなく実座標へ速度として反映する。
  */
 import { Actor } from '../Actor.js';
 import {
@@ -46,9 +47,19 @@ export class Boss extends Actor {
     this.reflectFlash = 0;
     this.bowShieldReleaseFlash = 0;
     this.bowShieldBreakLockTimer = 0;
+    this.bowShieldBreakKnockbackTimer = 0;
+    this.bowShieldBreakKnockbackDuration = 0;
+    this.bowShieldBreakKnockbackVX = 0;
+    this.bowShieldBreakKnockbackVY = 0;
     this.appearProgress = 0;
     this.purifyProgress = 0;
     this.purifying = false;
+    this.magicHitFlashTimer = 0;
+    this.magicHitFlashDuration = 0;
+    this.magicHitKnockbackTimer = 0;
+    this.magicHitKnockbackDuration = 0;
+    this.magicHitKnockbackVX = 0;
+    this.magicHitKnockbackVY = 0;
   }
 
   update(dt, scene) {
@@ -61,6 +72,9 @@ export class Boss extends Actor {
     this.bowShieldBreakLockTimer = Math.max(0, this.bowShieldBreakLockTimer - dt);
 
     if (this.bowShieldBreakLockTimer > 0) {
+      this.applyBowShieldBreakKnockbackDrift(dt);
+      this.applyMagicHitKnockbackDrift(dt);
+      this.updateMagicHitReactionTimers(dt);
       return;
     }
 
@@ -74,6 +88,8 @@ export class Boss extends Actor {
     }
 
     updateBossPatterns(this, dt, scene);
+    this.applyMagicHitKnockbackDrift(dt);
+    this.updateMagicHitReactionTimers(dt);
   }
 
   startBattleShield() {
@@ -99,14 +115,63 @@ export class Boss extends Actor {
     if (sourceX == null || !Number.isFinite(sourceX) || distance <= 0) return;
     const centerX = this.x + this.w / 2;
     const dir = centerX >= sourceX ? 1 : -1;
-    const minX = this.baseX - 105;
-    const maxX = this.baseX + 105;
-    this.x = Math.max(minX, Math.min(maxX, this.x + dir * distance));
-    this.y -= 6;
+    const duration = 0.38;
+    this.bowShieldBreakKnockbackDuration = duration;
+    this.bowShieldBreakKnockbackTimer = duration;
+    this.bowShieldBreakKnockbackVX = dir * (distance / duration) * 1.55;
+    this.bowShieldBreakKnockbackVY = -24;
+  }
+
+  applyBowShieldBreakKnockbackDrift(dt) {
+    if ((this.bowShieldBreakKnockbackTimer || 0) <= 0) return;
+    const duration = Math.max(0.001, this.bowShieldBreakKnockbackDuration || 0);
+    const rate = Math.max(0, Math.min(1, this.bowShieldBreakKnockbackTimer / duration));
+    const dx = (this.bowShieldBreakKnockbackVX || 0) * rate * dt;
+    const dy = (this.bowShieldBreakKnockbackVY || 0) * rate * dt;
+    this.x += dx;
+    this.y += dy;
+    this.baseX += dx;
+    this.baseY += dy;
+    this.bowShieldBreakKnockbackTimer = Math.max(0, this.bowShieldBreakKnockbackTimer - dt);
   }
 
   triggerReflectFlash(duration = 0.18) {
     this.reflectFlash = Math.max(this.reflectFlash, duration);
+  }
+
+  updateMagicHitReactionTimers(dt) {
+    this.magicHitFlashTimer = Math.max(0, (this.magicHitFlashTimer || 0) - dt);
+    this.magicHitKnockbackTimer = Math.max(0, (this.magicHitKnockbackTimer || 0) - dt);
+  }
+
+  getMagicHitKnockbackVelocity() {
+    const duration = Math.max(0.001, this.magicHitKnockbackDuration || 0);
+    const rate = Math.max(0, Math.min(1, (this.magicHitKnockbackTimer || 0) / duration));
+    return {
+      vx: (this.magicHitKnockbackVX || 0) * rate,
+      vy: (this.magicHitKnockbackVY || 0) * rate,
+    };
+  }
+
+  applyMagicHitKnockbackDrift(dt) {
+    if ((this.magicHitKnockbackTimer || 0) <= 0) return;
+    const recoil = this.getMagicHitKnockbackVelocity();
+    const dx = recoil.vx * dt;
+    const dy = recoil.vy * dt;
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
+    this.x += dx;
+    this.y += dy;
+    this.baseX += dx;
+    this.baseY += dy;
+  }
+
+  applyMagicHitReaction({ flash = 0.1, knockbackDuration = 0.16, knockbackVX = 0, knockbackVY = 0 } = {}) {
+    this.magicHitFlashDuration = Math.max(this.magicHitFlashDuration || 0, flash);
+    this.magicHitFlashTimer = Math.max(this.magicHitFlashTimer || 0, flash);
+    this.magicHitKnockbackDuration = Math.max(this.magicHitKnockbackDuration || 0, knockbackDuration);
+    this.magicHitKnockbackTimer = Math.max(this.magicHitKnockbackTimer || 0, knockbackDuration);
+    this.magicHitKnockbackVX = knockbackVX;
+    this.magicHitKnockbackVY = knockbackVY;
   }
 
   damage(amount) {

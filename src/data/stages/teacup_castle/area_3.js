@@ -109,7 +109,7 @@ const stage = {
     {
       "x": 1296,
       "y": 40,
-      "w": 1424,
+      "w": 1616,
       "h": 16,
       "kind": "vinePlatform",
       "active": true,
@@ -406,7 +406,7 @@ const stage = {
       "x": 2984,
       "y": 0,
       "w": 16,
-      "h": 112,
+      "h": 144,
       "kind": "vinePlatform",
       "active": true,
       "vineStyle": "current"
@@ -477,19 +477,10 @@ const stage = {
       "vineStyle": "current"
     },
     {
-      "x": 2680,
+      "x": 2672,
       "y": 200,
-      "w": 200,
+      "w": 208,
       "h": 16,
-      "kind": "vinePlatform",
-      "active": true,
-      "vineStyle": "current"
-    },
-    {
-      "x": 2664,
-      "y": 144,
-      "w": 16,
-      "h": 72,
       "kind": "vinePlatform",
       "active": true,
       "vineStyle": "current"
@@ -498,7 +489,7 @@ const stage = {
       "x": 2624,
       "y": 56,
       "w": 16,
-      "h": 144,
+      "h": 160,
       "kind": "vinePlatform",
       "active": true,
       "vineStyle": "current"
@@ -533,28 +524,19 @@ const stage = {
       "vineStyle": "current"
     },
     {
-      "x": 2736,
-      "y": 96,
-      "w": 248,
+      "x": 2896,
+      "y": 128,
+      "w": 88,
       "h": 16,
       "kind": "vinePlatform",
       "active": true,
       "vineStyle": "current"
     },
     {
-      "x": 2720,
-      "y": 40,
-      "w": 16,
-      "h": 72,
-      "kind": "vinePlatform",
-      "active": true,
-      "vineStyle": "current"
-    },
-    {
       "x": 2880,
-      "y": 112,
+      "y": 80,
       "w": 16,
-      "h": 104,
+      "h": 136,
       "kind": "vinePlatform",
       "active": true,
       "vineStyle": "current"
@@ -668,8 +650,8 @@ const stage = {
       "kind": "teacup"
     },
     {
-      "x": 2936,
-      "y": 56,
+      "x": 2944,
+      "y": 88,
       "kind": "dreamDrop",
       "groupId": ""
     },
@@ -720,12 +702,12 @@ const stage = {
     {
       "id": "after_rose_door_1",
       "x": 1496,
-      "y": 240,
+      "y": 224,
       "w": 28,
       "h": 48,
       "respawn": {
-        "x": 792,
-        "y": 288
+        "x": 1496,
+        "y": 240
       },
       "imageKey": "stage_checkpoint_flag"
     }
@@ -851,7 +833,7 @@ const stage = {
       "kind": "glassRose",
       "groupId": "rose_maze",
       "setId": "rose_maze_set_3",
-      "x": 2808,
+      "x": 2744,
       "y": 152,
       "w": 42,
       "h": 48,

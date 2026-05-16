@@ -1,6 +1,7 @@
 /**
  * 責務: 住民キャラクター本体、スタン表示、行動コマンド由来の描画フラグを描画する。
  * 更新ルール: 住民AIやダメージ処理は actors/resident と stage/ 側に置き、描画副作用を持たせない。
+ * 更新ルール: 魔法命中リアクションはResidentの実座標とフラッシュ状態を読むだけにし、描画側でノックバック座標補正を足さない。
  */
 import { drawSprite } from './drawSprite.js';
 import { isRideResident } from '../actors/resident/ResidentScope.js';
@@ -17,10 +18,15 @@ export class ResidentRenderer {
       const bounce = Math.sin(elapsed * 6 + resident.animOffset) * (resident.type === 'jelly' ? 2 : 1);
       const flags = resident.blackboard?.flags || {};
       const alpha = resident.stunTimer > 0 ? 0.72 : 1;
+      const visualX = resident.x - (resident.drawW - resident.w) / 2;
+      const visualY = resident.y - (resident.drawH - resident.h) + bounce;
       const auraFlag = flags.eyeGlow || flags.alertGlow;
       if (auraFlag) this.renderActionAura(ctx, resident, flags.eyeGlow ? '#fff6a8' : '#ffb7dc', elapsed, auraFlag, bounce);
 
-      drawSprite(ctx, img, resident.x - (resident.drawW - resident.w) / 2, resident.y - (resident.drawH - resident.h) + bounce, resident.drawW, resident.drawH, resident.facing > 0, alpha);
+      drawSprite(ctx, img, visualX, visualY, resident.drawW, resident.drawH, resident.facing > 0, alpha);
+      if (resident.magicHitFlashTimer > 0) {
+        this.renderMagicHitFlash(ctx, resident, img, visualX, visualY, alpha);
+      }
 
       if (flags.reflectFlash) this.renderReflectFlash(ctx, resident, flags.reflectFlash);
       if (resident.stunTimer > 0) {
@@ -60,6 +66,26 @@ export class ResidentRenderer {
     ctx.restore();
   }
 
+  renderMagicHitFlash(ctx, resident, img, x, y, alpha = 1) {
+    const duration = Math.max(0.001, resident.magicHitFlashDuration || 0.14);
+    const rate = Math.max(0, Math.min(1, resident.magicHitFlashTimer / duration));
+    const cx = x + resident.drawW / 2;
+    const cy = y + resident.drawH / 2;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (0.08 + rate * 0.14) * alpha;
+    drawSprite(ctx, img, x, y, resident.drawW, resident.drawH, resident.facing > 0);
+    ctx.globalAlpha = (0.035 + rate * 0.055) * alpha;
+    ctx.fillStyle = '#fffef2';
+    ctx.shadowColor = '#fffef2';
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, resident.drawW * 0.34, resident.drawH * 0.27, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   renderReflectFlash(ctx, resident, value) {
     const rate = typeof value === 'number' ? Math.max(0, Math.min(1, value / 0.18)) : 1;
     const cx = resident.x + resident.w / 2;
@@ -80,3 +106,4 @@ export class ResidentRenderer {
     ctx.restore();
   }
 }
+

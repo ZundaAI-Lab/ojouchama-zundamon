@@ -1,6 +1,7 @@
 /**
  * 責務: ボス本体の通常描画・出現/浄化中の見た目補間・防御/解除フラッシュ描画を担当する。
  * 更新ルール: ボス行動・攻撃・HP変化は actors/boss と stage/ 側に置く。
+ * 更新ルール: 魔法命中リアクションはBossの実座標とフラッシュ状態を読むだけにし、描画側でノックバック座標補正を足さない。
  */
 import { drawSprite } from './drawSprite.js';
 
@@ -31,6 +32,7 @@ export class BossRenderer {
     const y = boss.y + boss.h - drawH + bob - (1 - appear) * 18 - purify * 10;
 
     drawSprite(ctx, img, x, y, drawW, drawH, false, alpha);
+    if (boss.magicHitFlashTimer > 0) this.renderMagicHitFlash(ctx, boss, img, x, y, drawW, drawH, alpha);
 
     if (boss.reflectFlash > 0) this.renderReflectFlash(ctx, boss);
     if (boss.bowShieldReleaseFlash > 0) this.renderBowShieldReleaseEffect(ctx, boss);
@@ -46,6 +48,26 @@ export class BossRenderer {
     }
   }
 
+
+  renderMagicHitFlash(ctx, boss, img, x, y, drawW, drawH, alpha = 1) {
+    const duration = Math.max(0.001, boss.magicHitFlashDuration || 0.14);
+    const rate = Math.max(0, Math.min(1, boss.magicHitFlashTimer / duration));
+    const cx = x + drawW / 2;
+    const cy = y + drawH / 2;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (0.075 + rate * 0.13) * alpha;
+    drawSprite(ctx, img, x, y, drawW, drawH);
+    ctx.globalAlpha = (0.035 + rate * 0.055) * alpha;
+    ctx.fillStyle = '#fffef2';
+    ctx.shadowColor = '#fffef2';
+    ctx.shadowBlur = 7;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, drawW * 0.3, drawH * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   renderBowShieldReleaseEffect(ctx, boss) {
     const duration = 0.9;
@@ -132,3 +154,4 @@ export class BossRenderer {
     ctx.restore();
   }
 }
+

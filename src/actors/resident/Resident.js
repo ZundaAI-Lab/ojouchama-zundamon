@@ -2,6 +2,7 @@
  * 責務: 住民個体の共通状態、スタン、HP、行動ID選択を担当する。
  * 更新ルール: 住民ごとの具体的なAIは持たず、ResidentBehaviorRunnerへコマンド駆動で委譲する。
  * 更新ルール: 通常ステージ住民も風船ライド住民も同じActorとして生成し、rideId などの利用スコープだけを保持する。
+ * 更新ルール: 魔法命中リアクションはActor状態として保持し、ノックバックは描画オフセットではなく実座標へ速度として反映する。
  */
 import { Actor } from '../Actor.js';
 import { RESIDENT_DEFS } from '../../data/residentDefs.js';
@@ -53,6 +54,7 @@ export class Resident extends Actor {
     this.behaviorParams = mergeBehaviorParams(def.behaviorParams || {}, behaviorParams || {});
     this.blackboard = createResidentBlackboard();
     this.applyStageRuntimeFields(stageDef, def);
+    this.resetHitReactionFields();
     this.resetRideRuntimeFields();
   }
 
@@ -99,7 +101,18 @@ export class Resident extends Actor {
     this.stunTimer = 0;
     this.onGround = false;
     this.blackboard = createResidentBlackboard();
+    this.resetHitReactionFields();
     this.resetRideRuntimeFields();
+  }
+
+  resetHitReactionFields() {
+    this.magicHitFlashTimer = 0;
+    this.magicHitFlashDuration = 0;
+    this.magicHitKnockbackTimer = 0;
+    this.magicHitKnockbackDuration = 0;
+    this.magicHitKnockbackVX = 0;
+    this.magicHitKnockbackVY = 0;
+    this.magicHitKnockbackConsumed = false;
   }
 
   resetRideRuntimeFields() {
@@ -118,21 +131,86 @@ export class Resident extends Actor {
   update(dt, ctx) {
     this.age = (this.age || 0) + dt;
     this.attackFlash = Math.max(0, (this.attackFlash || 0) - dt);
+    this.beginHitReactionFrame();
 
     if (this.stunTimer > 0) {
       this.stunTimer = Math.max(0, this.stunTimer - dt);
       this.vx = 0;
       if (!this.flying && ctx?.physics && ctx?.collisionWorld) {
-        this.vy = Math.min(this.vy + 760 * dt, 420);
+        const recoil = this.getMagicHitKnockbackVelocity();
+        this.vx = recoil.vx;
+        this.vy = Math.min(this.vy + 760 * dt + recoil.vy, 420);
+        this.magicHitKnockbackConsumed = true;
         ctx.physics.moveActor(this, dt, ctx.collisionWorld.residentSolids, {
           useSlopeSurface: true,
           slopeSurfaces: ctx.collisionWorld.slopeSurfaces,
         });
       }
+      this.applyUnconsumedMagicHitKnockback(dt);
+      this.updateHitReactionTimers(dt);
       return;
     }
 
     ResidentBehaviorRunner.update(this, dt, ctx);
+    this.applyUnconsumedMagicHitKnockback(dt);
+    this.updateHitReactionTimers(dt);
+  }
+
+  beginHitReactionFrame() {
+    this.magicHitKnockbackConsumed = false;
+  }
+
+  updateInactiveHitReaction(dt) {
+    this.beginHitReactionFrame();
+    this.applyUnconsumedMagicHitKnockback(dt);
+    this.updateHitReactionTimers(dt);
+  }
+
+  updateHitReaction(dt) {
+    this.updateInactiveHitReaction(dt);
+  }
+
+  updateHitReactionTimers(dt) {
+    this.magicHitFlashTimer = Math.max(0, (this.magicHitFlashTimer || 0) - dt);
+    this.magicHitKnockbackTimer = Math.max(0, (this.magicHitKnockbackTimer || 0) - dt);
+  }
+
+  getMagicHitKnockbackVelocity() {
+    const duration = Math.max(0.001, this.magicHitKnockbackDuration || 0);
+    const rate = Math.max(0, Math.min(1, (this.magicHitKnockbackTimer || 0) / duration));
+    return {
+      vx: (this.magicHitKnockbackVX || 0) * rate,
+      vy: (this.magicHitKnockbackVY || 0) * rate,
+    };
+  }
+
+  applyMagicHitGroundVelocity() {
+    const recoil = this.getMagicHitKnockbackVelocity();
+    this.vx += recoil.vx;
+    this.vy += recoil.vy;
+    this.magicHitKnockbackConsumed = true;
+  }
+
+  applyUnconsumedMagicHitKnockback(dt) {
+    if (this.magicHitKnockbackConsumed || (this.magicHitKnockbackTimer || 0) <= 0) return;
+    const recoil = this.getMagicHitKnockbackVelocity();
+    const dx = recoil.vx * dt;
+    const dy = recoil.vy * dt;
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
+    this.x += dx;
+    this.y += dy;
+    this.baseX += dx;
+    this.baseY += dy;
+    if (this.blackboard?.floatBaseY != null) this.blackboard.floatBaseY += dy;
+  }
+
+  applyMagicHitReaction({ flash = 0.1, knockbackDuration = 0.16, knockbackVX = 0, knockbackVY = 0 } = {}) {
+    this.magicHitFlashDuration = Math.max(this.magicHitFlashDuration || 0, flash);
+    this.magicHitFlashTimer = Math.max(this.magicHitFlashTimer || 0, flash);
+    this.magicHitKnockbackDuration = Math.max(this.magicHitKnockbackDuration || 0, knockbackDuration);
+    this.magicHitKnockbackTimer = Math.max(this.magicHitKnockbackTimer || 0, knockbackDuration);
+    this.magicHitKnockbackVX = knockbackVX;
+    this.magicHitKnockbackVY = knockbackVY;
   }
 
   handleProjectile(projectile, ctx) {

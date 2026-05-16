@@ -1,0 +1,208 @@
+/*
+ * 責務: スマホ/touch端末だけの実ビューポート追従、スクロール抑制、セーフエリア対応を担当する。
+ * 更新ルール: PC表示の寸法・余白・見た目は変更しない。スマホ補正はhtml.is-touch-device配下に限定する。
+ * 更新ルール: タッチ入力の解釈とボタンDOM生成はTouchControlsView/InputSystemへ委譲し、このCSSでは表示サイズだけを調整する。
+ */
+@media (hover: none) and (pointer: coarse), (max-width: 760px) {
+ html.is-touch-device,
+ html.is-touch-device body {
+  width: 100%;
+  height: var(--app-vh, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+ }
+
+ html.is-touch-device body {
+  touch-action: none;
+ }
+
+ html.is-touch-device #app-root {
+  width: var(--app-vw, 100vw);
+  height: var(--app-vh, 100dvh);
+  padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  overflow: hidden;
+  place-items: center;
+  touch-action: none;
+ }
+
+ html.is-touch-device #game-shell {
+  width: min(
+   calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px),
+   calc((var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px) * 16 / 9)
+  );
+  max-width: calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px);
+  max-height: calc(var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+  border-radius: clamp(10px, 2.8dvh, 18px);
+  box-shadow: 0 8px 24px rgba(120, 71, 102, 0.28), 0 0 0 2px rgba(255,255,255,0.58) inset;
+  touch-action: none;
+ }
+
+ html.is-touch-device #game-canvas,
+ html.is-touch-device #fx-root,
+ html.is-touch-device #hud-root,
+ html.is-touch-device #ui-root,
+ html.is-touch-device #debug-root,
+ html.is-touch-device .touch-controls,
+ html.is-touch-device .touch-direction-pad,
+ html.is-touch-device .touch-btn {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+ }
+
+ html.is-touch-device img,
+ html.is-touch-device canvas {
+  -webkit-user-drag: none;
+ }
+
+ html.is-touch-device input,
+ html.is-touch-device select,
+ html.is-touch-device textarea,
+ html.is-touch-device button {
+  touch-action: manipulation;
+ }
+
+ html.is-mobile-landscape .touch-left,
+ html.is-mobile-landscape .touch-right {
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  gap: clamp(4px, 1.6dvh, 8px);
+ }
+
+ html.is-mobile-landscape .touch-left {
+  left: calc(6px + env(safe-area-inset-left));
+ }
+
+ html.is-mobile-landscape .touch-right {
+  right: calc(6px + env(safe-area-inset-right));
+ }
+
+ html.is-mobile-landscape .touch-controls.touch-left-handed .touch-left {
+  right: calc(6px + env(safe-area-inset-right));
+ }
+
+ html.is-mobile-landscape .touch-controls.touch-left-handed .touch-right {
+  left: calc(6px + env(safe-area-inset-left));
+ }
+
+ html.is-mobile-landscape .touch-direction-pad {
+  width: min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px));
+  height: min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px));
+ }
+
+ html.is-mobile-landscape .touch-direction-pad-base {
+  inset: clamp(10px, 4dvh, 16px);
+ }
+
+ html.is-mobile-landscape .touch-direction-pad-knob {
+  width: min(54px, clamp(36px, 10dvh, 48px));
+  height: min(54px, clamp(36px, 10dvh, 48px));
+ }
+
+ html.is-mobile-landscape .touch-direction-pad-label {
+  bottom: clamp(6px, 1.8dvh, 10px);
+  font-size: clamp(9px, 2.8dvh, 12px);
+ }
+
+ html.is-mobile-landscape .touch-button-grid {
+  --touch-button-grid-size: min(var(--touch-button-size, 68px), clamp(42px, 11dvh, 56px));
+  --touch-button-gap: clamp(4px, 1.8dvh, 8px);
+ }
+
+ html.is-mobile-landscape .touch-btn {
+  font-size: clamp(13px, 3.8dvh, 18px);
+ }
+
+ html.is-mobile-landscape .touch-right {
+  max-width: calc(100% - min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px)) - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
+ }
+
+ html.is-mobile-portrait #app-root {
+  align-items: start;
+  padding-top: calc(40px + env(safe-area-inset-top));
+ }
+
+ html.is-mobile-portrait #game-shell {
+  width: min(
+   calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px),
+   calc((var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px) * 16 / 9)
+  );
+ }
+
+ html.is-mobile-portrait #ui-root::after {
+  content: '横向きにすると遊びやすくなります';
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #5b6f3a;
+  border: 2px solid rgba(177, 229, 177, 0.92);
+  box-shadow: 0 8px 20px rgba(70, 110, 70, 0.14);
+  font-size: clamp(11px, 3vw, 14px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+ }
+
+ html.is-mobile-portrait .touch-left,
+ html.is-mobile-portrait .touch-right {
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  gap: 5px;
+ }
+
+ html.is-mobile-portrait .touch-left {
+  left: calc(6px + env(safe-area-inset-left));
+ }
+
+ html.is-mobile-portrait .touch-right {
+  right: calc(6px + env(safe-area-inset-right));
+ }
+
+ html.is-mobile-portrait .touch-controls.touch-left-handed .touch-left {
+  right: calc(6px + env(safe-area-inset-right));
+ }
+
+ html.is-mobile-portrait .touch-controls.touch-left-handed .touch-right {
+  left: calc(6px + env(safe-area-inset-left));
+ }
+
+ html.is-mobile-portrait .touch-direction-pad {
+  width: min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px));
+  height: min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px));
+ }
+
+ html.is-mobile-portrait .touch-direction-pad-base {
+  inset: clamp(9px, 3vw, 14px);
+ }
+
+ html.is-mobile-portrait .touch-direction-pad-knob {
+  width: min(54px, clamp(34px, 9vw, 44px));
+  height: min(54px, clamp(34px, 9vw, 44px));
+ }
+
+ html.is-mobile-portrait .touch-direction-pad-label {
+  bottom: 6px;
+  font-size: 10px;
+ }
+
+ html.is-mobile-portrait .touch-button-grid {
+  --touch-button-grid-size: min(var(--touch-button-size, 68px), clamp(36px, 10vw, 46px));
+  --touch-button-gap: 4px;
+ }
+
+ html.is-mobile-portrait .touch-right {
+  max-width: calc(100% - min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px)) - 18px - env(safe-area-inset-left) - env(safe-area-inset-right));
+ }
+
+ html.is-mobile-portrait .touch-btn {
+  font-size: clamp(12px, 3vw, 15px);
+ }
+}

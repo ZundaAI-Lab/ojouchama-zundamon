@@ -9,6 +9,7 @@
  * 更新ルール: ボス戦専用カメラ演出の依存生成はここで行い、BossEncounterControllerには生成責務を持たせない。
  * 更新ルール: 夢のしずく取得はゴール時まで未確定としてRuntimeに保持し、保存処理はStageClearServiceで行う。
  * 更新ルール: 次ステージ画像の先読みはassetLoadPlansの算出結果だけを使い、Runtime初期化手順へステージ解析を増やさない。
+ * 更新ルール: 魔法命中ヒットストップの初期値だけをここで持ち、停止処理はStageUpdateFlowへ委譲する。
  */
 import { Hud } from '../../ui/Hud.js';
 import { DialogueView } from '../../ui/DialogueView.js';
@@ -103,6 +104,7 @@ export async function enterStageRuntime(runtime) {
   runtime.damageCount = runtime.routeProgressBase.damageCount;
   runtime.pendingDreamDropStageIds = new Set();
   runtime.flashTimer = 0;
+  runtime.magicHitStopTimer = 0;
   runtime.restartTimer = 0;
   runtime.pendingNanoRescueTutorial = false;
   runtime.tutorialDialog = null;

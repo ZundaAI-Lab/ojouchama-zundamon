@@ -2,6 +2,7 @@
  * 責務: 風船ライド専用の開始地点、ライド中住民/障害物、接続風船、破裂エフェクトを描画する。
  * 更新ルール: ライド状態の変更や当たり判定はBalloonRideSystem配下の担当モジュールへ置き、ここでは読み取り専用で描画する。
  * 更新ルール: ライド住民の左右反転は上昇スクロール時だけresident.facingを読む。横スクロール時は従来通り素材そのまま描画する。
+ * 更新ルール: 魔法命中リアクションはResidentの実座標とフラッシュ状態を読むだけにし、描画側でノックバック座標補正を足さない。
  */
 import { drawSprite } from './drawSprite.js';
 
@@ -143,8 +144,28 @@ export class BalloonRideRenderer {
       const w = resident.drawW || (this.isCloudLikeResident(resident.type) ? 56 : 42);
       const h = img ? w * (img.height / img.width) : resident.h || 42;
       const flipX = this.shouldFlipResident(resident, verticalUp);
-      drawSprite(ctx, img, resident.x + resident.w / 2 - w / 2, resident.y + resident.h / 2 - h / 2, w, h, flipX);
+      const x = resident.x + resident.w / 2 - w / 2;
+      const y = resident.y + resident.h / 2 - h / 2;
+      drawSprite(ctx, img, x, y, w, h, flipX);
+      if (resident.magicHitFlashTimer > 0) this.renderResidentMagicHitFlash(ctx, resident, img, x, y, w, h, flipX);
     }
+  }
+
+  renderResidentMagicHitFlash(ctx, resident, img, x, y, w, h, flipX) {
+    const duration = Math.max(0.001, resident.magicHitFlashDuration || 0.14);
+    const rate = Math.max(0, Math.min(1, resident.magicHitFlashTimer / duration));
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.075 + rate * 0.13;
+    drawSprite(ctx, img, x, y, w, h, flipX);
+    ctx.globalAlpha = 0.03 + rate * 0.05;
+    ctx.fillStyle = '#fffef2';
+    ctx.shadowColor = '#fffef2';
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h / 2, w * 0.34, h * 0.27, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
 
@@ -195,3 +216,4 @@ export class BalloonRideRenderer {
     drawSprite(ctx, img, float.x - w / 2, float.y - h / 2, w, h, false, Math.max(0, 1 - float.age * 0.45));
   }
 }
+

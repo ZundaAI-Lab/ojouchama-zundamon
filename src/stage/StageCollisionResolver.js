@@ -4,19 +4,21 @@
  * 更新ルール: なのちゃん固有の状態判定はNanoCompanionへ委譲し、ここでは衝突後の効果適用だけを行う。
  * 更新ルール: 住民弾・中立ギミック弾の特殊効果は弾の contactEffect を見て汎用処理し、住民種別名では分岐しない。
  * 更新ルール: ボス固有の防御状態はBoss側の状態を参照し、衝突後の弾き演出だけをここで接続する。
+ * 更新ルール: 魔法命中リアクションはMagicHitReactionServiceへ委譲し、ここでは命中確定時に接続する。
  */
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { BubbleLiftSystem } from './BubbleLiftSystem.js';
 import { ItemCollectionService } from './ItemCollectionService.js';
 import { isNormalResident } from '../actors/resident/ResidentScope.js';
 import { ResidentProjectileHitService } from './residents/ResidentProjectileHitService.js';
+import { MagicHitReactionService } from './MagicHitReactionService.js';
 
 export class StageCollisionResolver {
   static handle(runtime) {
     ItemCollectionService.collectWithPlayerAndNano(runtime);
 
     for (const resident of runtime.residents) {
-      if (!isNormalResident(resident) || !resident.contactDamage) continue;
+      if (!resident.alive || !isNormalResident(resident) || !resident.contactDamage) continue;
       if (CollisionSystem.intersectsDamageBounds(runtime.player, resident) && resident.stunTimer <= 0) {
         this.hitPlayer(runtime, runtime.player.x < resident.x ? -1 : 1);
       }
@@ -97,6 +99,7 @@ export class StageCollisionResolver {
 
     projectile.alive = false;
     const wasAlive = runtime.boss.alive;
+    MagicHitReactionService.applyToBoss(runtime, runtime.boss, projectile);
     runtime.boss.damage(projectile.damage);
     runtime.camera.shake(2, 0.1);
     runtime.spawnSparkles(projectile.x, projectile.y, '#fff0a0', 8);
