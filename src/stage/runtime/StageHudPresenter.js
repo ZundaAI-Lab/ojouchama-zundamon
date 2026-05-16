@@ -1,6 +1,6 @@
 /**
  * 責務: StageRuntimeが持つ実行状態をHUD表示用のstateへ変換する。
- * 更新ルール: HUDの表示項目追加はここで集約し、update本体に表示用オブジェクト生成を戻さない。
+ * 更新ルール: HUDの常時更新項目はここで集約し、ステージ名など一度きりの演出タイミングはRuntime初期化側で制御する。
  */
 export function updateStageHud(runtime) {
   runtime.hud.update({
@@ -17,6 +17,5 @@ export function updateStageHud(runtime) {
     teaReady: runtime.player.tea.cooldown <= 0 && runtime.teacups > 0,
     teaBoosting: runtime.player.tea.boostTimer > 0,
     balloonRide: runtime.balloonRideSystem?.getHudState?.(),
-    stageName: `${runtime.stage.name}`,
   });
 }

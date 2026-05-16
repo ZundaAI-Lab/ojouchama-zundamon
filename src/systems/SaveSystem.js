@@ -7,10 +7,12 @@
  * 更新ルール: デバッグ用の進行フラグ変更も、保存形式の整合性維持のためここで正規化する。
  * 更新ルール: BGM/SEの音量設定はsettings配下で分けて保持し、読み込み時に0〜1へ正規化する。
  * 更新ルール: 夢のしずく獲得状況はエリアstageId単位でdreamDropsへ保持し、取得だけでは保存せずゴール時に記録する。
+ * 更新ルール: HUD外観設定はsettings配下に保存し、読み込み時に色と不透明度を正規化する。
  */
 import { STORAGE_KEY, UPGRADE_DEFS } from '../config/upgradeDefs.js';
 import { SHOP_ITEM_DEFS, clampTeacups } from '../config/teacupInventory.js';
 import { DEFAULT_KEY_BINDINGS, DEFAULT_TOUCH_CONFIG, normalizeKeyBindings, normalizeTouchConfig } from '../config/controlSettings.js';
+import { normalizeHudSettings } from '../config/hudSettings.js';
 
 const SAVE_VERSION = 6;
 
@@ -21,6 +23,7 @@ const defaultSettings = () => ({
   sfxVolume: 0.75,
   muted: false,
   difficulty: 'normal',
+  ...normalizeHudSettings(),
   keyBindings: normalizeKeyBindings(DEFAULT_KEY_BINDINGS),
   touchControls: normalizeTouchConfig(DEFAULT_TOUCH_CONFIG),
 });
@@ -52,6 +55,7 @@ function normalizeSettings(settings = {}) {
   const merged = { ...defaults, ...settings };
   merged.bgmVolume = clampVolume(merged.bgmVolume, defaults.bgmVolume);
   merged.sfxVolume = clampVolume(merged.sfxVolume, defaults.sfxVolume);
+  Object.assign(merged, normalizeHudSettings(merged));
   merged.keyBindings = normalizeKeyBindings(merged.keyBindings);
   merged.touchControls = normalizeTouchConfig(merged.touchControls);
   return merged;

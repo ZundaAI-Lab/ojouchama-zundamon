@@ -4,6 +4,7 @@
  */
 import { createTest } from '../TestRunner.js';
 import { Player } from '../../actors/player/Player.js';
+import { Resident } from '../../actors/resident/Resident.js';
 import { PlayerController } from '../../actors/player/PlayerController.js';
 import { PhysicsSystem } from '../../systems/PhysicsSystem.js';
 import { INPUT_ACTIONS } from '../../config/inputActions.js';
@@ -101,18 +102,27 @@ export const coreTests = [
     equal(getTouchButtonSlotSourceIndexForLayout('leftHanded', 1), 3);
     equal(getTouchButtonSlotSourceIndexForLayout('leftHanded', 5), 9);
     equal(getTouchButtonSlotSourceIndexForLayout('leftHanded', 6), 8);
+    equal(getTouchButtonSlotSourceIndexForLayout('leftHanded', 9), 5);
     deepEqual(getTouchButtonSlotsForLayout(DEFAULT_TOUCH_BUTTON_SLOTS, 'leftHanded'), [
       INPUT_ACTIONS.NANO,
       INPUT_ACTIONS.TEA,
       null,
       null,
-      INPUT_ACTIONS.PAUSE,
+      null,
       INPUT_ACTIONS.JUMP,
       INPUT_ACTIONS.MAGIC,
       INPUT_ACTIONS.BOW,
       null,
-      null,
+      INPUT_ACTIONS.PAUSE,
     ]);
+  }),
+
+  createTest('Resident', '魔法ヒット地上ノックバックの縦速度は同一フレームで重複加算しない', ({ equal }) => {
+    const resident = new Resident({ x: 0, y: 0, type: 'macaron' });
+    resident.applyMagicHitReaction({ knockbackDuration: 1, knockbackVX: 0, knockbackVY: -28 });
+    resident.applyMagicHitGroundVelocity();
+    resident.applyMagicHitGroundVelocity();
+    equal(resident.vy, -28);
   }),
 
   createTest('TouchControlsView', 'destroy時にこのViewが押下した仮想入力を全解除する', ({ equal }) => {

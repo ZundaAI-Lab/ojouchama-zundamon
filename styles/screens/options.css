@@ -202,3 +202,35 @@
   font-weight: 800;
   padding: 7px 8px;
 }
+
+/* HUD外観設定: 色入力はカード内で見やすいスウォッチとして表示する。 */
+.option-color-label {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.option-color-input {
+  justify-self: end;
+  width: 72px !important;
+  min-width: 72px;
+  height: 42px;
+  padding: 4px;
+  border: 2px solid rgba(177, 229, 177, 0.96);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+.option-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.option-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.option-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 10px;
+}

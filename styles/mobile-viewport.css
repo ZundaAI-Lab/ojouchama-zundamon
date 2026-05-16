@@ -1,208 +1,810 @@
 /*
- * 責務: スマホ/touch端末だけの実ビューポート追従、スクロール抑制、セーフエリア対応を担当する。
- * 更新ルール: PC表示の寸法・余白・見た目は変更しない。スマホ補正はhtml.is-touch-device配下に限定する。
- * 更新ルール: タッチ入力の解釈とボタンDOM生成はTouchControlsView/InputSystemへ委譲し、このCSSでは表示サイズだけを調整する。
+ * 責務: スマホ実表示領域への追従、スクロール抑制、タッチ端末専用のUI縮小補正を担当する。
+ * 更新ルール: 入力処理・ゲーム進行・各画面のDOM生成には関与しない。
+ * 更新ルール: 大型表示CSSの後続補正として最後に読み込み、タッチ端末時だけメニュー・会話・確認ダイアログを画面内へ収める。
  */
-@media (hover: none) and (pointer: coarse), (max-width: 760px) {
- html.is-touch-device,
- html.is-touch-device body {
-  width: 100%;
-  height: var(--app-vh, 100dvh);
-  min-height: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-  position: fixed;
-  inset: 0;
- }
 
- html.is-touch-device body {
-  touch-action: none;
- }
+@media (hover: none) and (pointer: coarse) {
+  html,
+  body {
+    width: 100%;
+    height: var(--app-vh, 100dvh);
+    min-height: var(--app-vh, 100dvh);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
 
- html.is-touch-device #app-root {
-  width: var(--app-vw, 100vw);
-  height: var(--app-vh, 100dvh);
-  padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
-  overflow: hidden;
-  place-items: center;
-  touch-action: none;
- }
+  body {
+    position: fixed;
+    inset: 0;
+  }
 
- html.is-touch-device #game-shell {
-  width: min(
-   calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px),
-   calc((var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px) * 16 / 9)
-  );
-  max-width: calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px);
-  max-height: calc(var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
-  border-radius: clamp(10px, 2.8dvh, 18px);
-  box-shadow: 0 8px 24px rgba(120, 71, 102, 0.28), 0 0 0 2px rgba(255,255,255,0.58) inset;
-  touch-action: none;
- }
+  #app-root {
+    width: var(--app-vw, 100vw);
+    height: var(--app-vh, 100dvh);
+    min-height: 0;
+    padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
 
- html.is-touch-device #game-canvas,
- html.is-touch-device #fx-root,
- html.is-touch-device #hud-root,
- html.is-touch-device #ui-root,
- html.is-touch-device #debug-root,
- html.is-touch-device .touch-controls,
- html.is-touch-device .touch-direction-pad,
- html.is-touch-device .touch-btn {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: none;
- }
+  #game-shell {
+    width: min(
+      calc(var(--app-vw, 100vw) - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))),
+      calc((var(--app-vh, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))) * 16 / 9)
+    );
+    max-width: calc(var(--app-vw, 100vw) - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right)));
+    max-height: calc(var(--app-vh, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    border-radius: clamp(10px, 2.4svh, 18px);
+    box-shadow: 0 8px 24px rgba(120, 71, 102, 0.24), 0 0 0 2px rgba(255,255,255,0.55) inset;
+  }
 
- html.is-touch-device img,
- html.is-touch-device canvas {
-  -webkit-user-drag: none;
- }
+  #game-canvas,
+  #fx-root,
+  #hud-root,
+  #ui-root,
+  #debug-root,
+  .touch-controls {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
 
- html.is-touch-device input,
- html.is-touch-device select,
- html.is-touch-device textarea,
- html.is-touch-device button {
-  touch-action: manipulation;
- }
+  button,
+  input,
+  select,
+  textarea,
+  .option-scroll,
+  .tutorial-scroll,
+  .garden-section,
+  .stage-section,
+  .shop-section,
+  .dialogue-text,
+  .opening-text {
+    touch-action: manipulation;
+  }
 
- html.is-mobile-landscape .touch-left,
- html.is-mobile-landscape .touch-right {
-  bottom: calc(6px + env(safe-area-inset-bottom));
-  gap: clamp(4px, 1.6dvh, 8px);
- }
+  .menu-screen,
+  .option-screen,
+  .key-config-screen,
+  .touch-control-screen,
+  .tutorial-screen,
+  .confirm-dialog-screen,
+  .stage-option-dialog {
+    box-sizing: border-box;
+    padding: clamp(4px, 1.6svh, 10px) clamp(4px, 1.8svw, 12px);
+    overflow: hidden;
+  }
 
- html.is-mobile-landscape .touch-left {
-  left: calc(6px + env(safe-area-inset-left));
- }
+  .panel,
+  .menu-card,
+  .garden-card,
+  .opening-card,
+  .dialogue-window,
+  .confirm-dialog-card,
+  .tutorial-card-panel {
+    box-sizing: border-box;
+  }
 
- html.is-mobile-landscape .touch-right {
-  right: calc(6px + env(safe-area-inset-right));
- }
+  .primary-btn,
+  .secondary-btn,
+  .confirm-dialog-button,
+  .tutorial-tab,
+  .key-bind-btn,
+  .key-default-btn,
+  .option-nav-btn {
+    min-height: clamp(32px, 9.2svh, 44px);
+    padding: clamp(6px, 1.8svh, 10px) clamp(10px, 2.8svw, 16px);
+    font-size: clamp(12px, 3.5svh, 16px);
+    line-height: 1.15;
+  }
 
- html.is-mobile-landscape .touch-controls.touch-left-handed .touch-left {
-  right: calc(6px + env(safe-area-inset-right));
- }
+  .menu-card:not(.title-card):not(.option-card):not(.tutorial-card-panel) {
+    width: min(96%, 520px);
+    max-height: calc(100% - 8px);
+    padding: clamp(9px, 2.5svh, 14px) clamp(10px, 3svw, 16px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
 
- html.is-mobile-landscape .touch-controls.touch-left-handed .touch-right {
-  left: calc(6px + env(safe-area-inset-left));
- }
+  .menu-card:not(.title-card) .menu-title {
+    margin-bottom: clamp(4px, 1.3svh, 7px);
+    font-size: clamp(20px, 6.2svh, 28px);
+    line-height: 1.06;
+  }
 
- html.is-mobile-landscape .touch-direction-pad {
-  width: min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px));
-  height: min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px));
- }
+  .menu-card:not(.title-card) .menu-subtitle {
+    margin-bottom: clamp(6px, 1.6svh, 10px);
+    font-size: clamp(11px, 3.2svh, 14px);
+    line-height: 1.3;
+  }
 
- html.is-mobile-landscape .touch-direction-pad-base {
-  inset: clamp(10px, 4dvh, 16px);
- }
+  .menu-actions,
+  .garden-actions,
+  .tutorial-actions,
+  .confirm-dialog-actions {
+    gap: clamp(6px, 1.8svh, 9px);
+    margin-top: clamp(7px, 2svh, 10px);
+  }
 
- html.is-mobile-landscape .touch-direction-pad-knob {
-  width: min(54px, clamp(36px, 10dvh, 48px));
-  height: min(54px, clamp(36px, 10dvh, 48px));
- }
+  .title-screen {
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: clamp(5px, 1.7svh, 10px) clamp(6px, 1.8svw, 12px);
+    overflow: hidden;
+  }
 
- html.is-mobile-landscape .touch-direction-pad-label {
-  bottom: clamp(6px, 1.8dvh, 10px);
-  font-size: clamp(9px, 2.8dvh, 12px);
- }
+  .title-main-heading {
+    margin-top: clamp(2px, 1.2svh, 6px);
+    font-size: clamp(26px, 10svh, 48px);
+    line-height: 0.98;
+  }
 
- html.is-mobile-landscape .touch-button-grid {
-  --touch-button-grid-size: min(var(--touch-button-size, 68px), clamp(42px, 11dvh, 56px));
-  --touch-button-gap: clamp(4px, 1.8dvh, 8px);
- }
+  .title-bottom-panels {
+    width: min(98%, 560px);
+    max-height: 100%;
+    gap: clamp(6px, 1.8svh, 9px);
+    margin-top: clamp(6px, 1.8svh, 10px);
+    overflow: hidden;
+  }
 
- html.is-mobile-landscape .touch-btn {
-  font-size: clamp(13px, 3.8dvh, 18px);
- }
+  .title-progress-panel,
+  .title-actions-panel {
+    border-radius: clamp(14px, 3.6svh, 18px);
+    padding: clamp(8px, 2.2svh, 12px) clamp(10px, 2.8svw, 14px);
+  }
 
- html.is-mobile-landscape .touch-right {
-  max-width: calc(100% - min(var(--touch-pad-size, 134px), clamp(84px, 26dvh, 112px)) - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
- }
+  .title-block-heading {
+    margin-bottom: clamp(5px, 1.6svh, 8px);
+    font-size: clamp(13px, 3.8svh, 16px);
+  }
 
- html.is-mobile-portrait #app-root {
-  align-items: start;
-  padding-top: calc(40px + env(safe-area-inset-top));
- }
+  .title-status-grid {
+    gap: clamp(5px, 1.4svh, 8px);
+  }
 
- html.is-mobile-portrait #game-shell {
-  width: min(
-   calc(var(--app-vw, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 12px),
-   calc((var(--app-vh, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px) * 16 / 9)
-  );
- }
+  .title-status-item {
+    gap: 3px;
+    padding: clamp(6px, 1.8svh, 9px) clamp(7px, 2svw, 10px);
+    border-radius: clamp(12px, 3svh, 15px);
+  }
 
- html.is-mobile-portrait #ui-root::after {
-  content: '横向きにすると遊びやすくなります';
-  position: absolute;
-  top: calc(8px + env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 900;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  color: #5b6f3a;
-  border: 2px solid rgba(177, 229, 177, 0.92);
-  box-shadow: 0 8px 20px rgba(70, 110, 70, 0.14);
-  font-size: clamp(11px, 3vw, 14px);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  pointer-events: none;
- }
+  .title-status-item span {
+    font-size: clamp(10px, 2.8svh, 12px);
+  }
 
- html.is-mobile-portrait .touch-left,
- html.is-mobile-portrait .touch-right {
-  bottom: calc(6px + env(safe-area-inset-bottom));
-  gap: 5px;
- }
+  .title-status-item strong {
+    font-size: clamp(19px, 5.4svh, 25px);
+  }
 
- html.is-mobile-portrait .touch-left {
-  left: calc(6px + env(safe-area-inset-left));
- }
+  .title-actions {
+    gap: clamp(6px, 1.8svh, 8px);
+  }
 
- html.is-mobile-portrait .touch-right {
-  right: calc(6px + env(safe-area-inset-right));
- }
+  .title-actions .primary-btn,
+  .title-actions .secondary-btn {
+    min-height: clamp(34px, 9svh, 42px);
+    padding: clamp(7px, 1.9svh, 9px) clamp(10px, 2.8svw, 14px);
+    font-size: clamp(13px, 3.7svh, 16px);
+  }
 
- html.is-mobile-portrait .touch-controls.touch-left-handed .touch-left {
-  right: calc(6px + env(safe-area-inset-right));
- }
+  .title-version-label {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(5px, env(safe-area-inset-bottom));
+    font-size: 9px;
+  }
 
- html.is-mobile-portrait .touch-controls.touch-left-handed .touch-right {
-  left: calc(6px + env(safe-area-inset-left));
- }
+  .dialogue-layer {
+    padding: clamp(4px, 1.5svh, 8px);
+  }
 
- html.is-mobile-portrait .touch-direction-pad {
-  width: min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px));
-  height: min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px));
- }
+  .dialogue-window {
+    width: min(96%, calc(100% - 8px));
+    min-height: 0;
+    max-height: calc(100% - 8px);
+    grid-template-columns: clamp(48px, 17svh, 76px) minmax(0, 1fr);
+    gap: clamp(7px, 2svw, 10px);
+    align-items: stretch;
+    padding: clamp(7px, 1.8svh, 10px) clamp(8px, 2.2svw, 12px);
+    border-width: 2px;
+    border-radius: clamp(14px, 3.4svh, 18px);
+  }
 
- html.is-mobile-portrait .touch-direction-pad-base {
-  inset: clamp(9px, 3vw, 14px);
- }
+  .dialogue-portrait-frame {
+    min-height: clamp(56px, 24svh, 82px);
+    border-radius: clamp(12px, 3.2svh, 16px);
+  }
 
- html.is-mobile-portrait .touch-direction-pad-knob {
-  width: min(54px, clamp(34px, 9vw, 44px));
-  height: min(54px, clamp(34px, 9vw, 44px));
- }
+  .dialogue-portrait {
+    width: min(100%, clamp(48px, 15svh, 72px));
+    height: min(100%, clamp(58px, 20svh, 86px));
+  }
 
- html.is-mobile-portrait .touch-direction-pad-label {
-  bottom: 6px;
-  font-size: 10px;
- }
+  .dialogue-content {
+    align-content: stretch;
+  }
 
- html.is-mobile-portrait .touch-button-grid {
-  --touch-button-grid-size: min(var(--touch-button-size, 68px), clamp(36px, 10vw, 46px));
-  --touch-button-gap: 4px;
- }
+  .dialogue-speaker {
+    min-height: clamp(18px, 4.8svh, 22px);
+    margin-bottom: clamp(3px, 0.9svh, 5px);
+    padding: 2px 8px;
+    font-size: clamp(10.5px, 3.2svh, 13px);
+    line-height: 1.12;
+  }
 
- html.is-mobile-portrait .touch-right {
-  max-width: calc(100% - min(var(--touch-pad-size, 134px), clamp(78px, 24vw, 104px)) - 18px - env(safe-area-inset-left) - env(safe-area-inset-right));
- }
+  .dialogue-text {
+    display: block;
+    font-size: clamp(11px, 3.35svh, 14px);
+    line-height: 1.42;
+    font-weight: 650;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
 
- html.is-mobile-portrait .touch-btn {
-  font-size: clamp(12px, 3vw, 15px);
- }
+  .dialogue-hint {
+    margin-top: clamp(3px, 0.9svh, 5px);
+    font-size: clamp(8px, 2.4svh, 10px);
+  }
+
+  .opening-card {
+    width: min(96%, calc(100% - 8px));
+    max-height: calc(100% - 8px);
+    padding: clamp(8px, 2.2svh, 12px) clamp(10px, 2.6svw, 14px);
+    gap: clamp(6px, 1.8svh, 9px);
+    overflow: hidden;
+  }
+
+  .opening-label {
+    padding: 3px 9px;
+    font-size: clamp(10px, 2.8svh, 12px);
+  }
+
+  .opening-title {
+    font-size: clamp(20px, 5.8svh, 28px);
+    line-height: 1.06;
+  }
+
+  .opening-text {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+    padding: clamp(8px, 2.2svh, 12px) clamp(10px, 2.8svw, 14px);
+    font-size: clamp(12px, 3.45svh, 15px);
+    line-height: 1.45;
+    border-radius: clamp(14px, 3.6svh, 18px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .opening-text strong {
+    min-height: 0;
+    margin-bottom: clamp(4px, 1.3svh, 6px);
+    padding: 2px 8px;
+    font-size: clamp(11px, 3.25svh, 13px);
+  }
+
+  .opening-progress {
+    font-size: clamp(10px, 2.8svh, 12px);
+  }
+
+  .garden-screen {
+    padding: clamp(4px, 1.5svh, 8px);
+    overflow: hidden;
+  }
+
+  .garden-card,
+  .garden-card.stage-card,
+  .garden-card.shop-card {
+    width: min(98%, calc(100% - 4px));
+    min-height: 0;
+    height: calc(100% - 4px);
+    max-height: calc(100% - 4px);
+    padding: clamp(7px, 1.9svh, 11px) clamp(8px, 2.4svw, 12px);
+    gap: clamp(5px, 1.4svh, 8px);
+    overflow: hidden;
+  }
+
+  .garden-header {
+    gap: clamp(5px, 1.4svh, 8px);
+  }
+
+  .garden-header .menu-title,
+  .stage-card .garden-header .menu-title {
+    font-size: clamp(18px, 5.2svh, 25px);
+    line-height: 1.04;
+  }
+
+  .garden-header .menu-subtitle,
+  .stage-card .garden-header .menu-subtitle {
+    font-size: clamp(10px, 2.8svh, 12px);
+    line-height: 1.25;
+  }
+
+  .garden-coin,
+  .stage-card .garden-coin {
+    gap: 4px;
+    padding: clamp(4px, 1.2svh, 6px) clamp(7px, 2svw, 10px);
+    font-size: clamp(11px, 3.2svh, 14px);
+  }
+
+  .garden-coin img {
+    width: clamp(14px, 4svh, 18px);
+    height: clamp(14px, 4svh, 18px);
+  }
+
+  .stage-section,
+  .shop-section,
+  .stage-card .stage-section {
+    margin-top: 0;
+    padding: clamp(5px, 1.4svh, 8px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .section-title-row h2,
+  .stage-card .stage-section h2,
+  .garden-section h2 {
+    font-size: clamp(13px, 3.6svh, 16px);
+  }
+
+  .section-title-row span {
+    display: none;
+  }
+
+  .stage-list,
+  .stage-card .stage-list,
+  .upgrade-list {
+    gap: clamp(4px, 1.2svh, 6px);
+  }
+
+  .stage-select,
+  .stage-card .stage-select,
+  .upgrade-select {
+    min-height: clamp(44px, 12svh, 58px);
+    padding: clamp(5px, 1.4svh, 7px) clamp(7px, 2svw, 10px);
+    gap: clamp(6px, 1.8svw, 9px);
+    border-radius: clamp(12px, 3svh, 15px);
+  }
+
+  .stage-select img,
+  .stage-card .stage-select img,
+  .shop-item-icon {
+    width: clamp(34px, 9svh, 46px);
+    height: clamp(38px, 10svh, 50px);
+  }
+
+  .stage-select strong,
+  .stage-card .stage-select strong,
+  .upgrade-select strong {
+    font-size: clamp(11px, 3.2svh, 14px);
+    line-height: 1.15;
+  }
+
+  .stage-select span,
+  .stage-card .stage-select span,
+  .upgrade-select span,
+  .stage-select em,
+  .stage-card .stage-select em,
+  .upgrade-select em {
+    font-size: clamp(9px, 2.6svh, 11px);
+    line-height: 1.22;
+    padding: 0;
+  }
+
+  .stage-card .stage-desc-row {
+    gap: clamp(5px, 1.4svw, 8px);
+    margin-top: clamp(3px, 0.9svh, 5px);
+  }
+
+  .stage-card .stage-dream-drops {
+    min-width: clamp(72px, 18svw, 100px);
+    min-height: clamp(18px, 5svh, 24px);
+    flex-basis: clamp(72px, 18svw, 100px);
+    gap: 3px;
+  }
+
+  .stage-card .stage-dream-drops img,
+  .garden-screen .stage-card .stage-select .stage-dream-drops img {
+    width: clamp(16px, 4.6svh, 22px);
+    height: clamp(18px, 5svh, 24px);
+  }
+
+  .garden-actions .primary-btn,
+  .garden-actions .secondary-btn,
+  .stage-card .garden-actions .primary-btn,
+  .stage-card .garden-actions .secondary-btn {
+    min-width: 0;
+    font-size: clamp(12px, 3.3svh, 15px);
+    padding: clamp(6px, 1.6svh, 8px) clamp(10px, 2.6svw, 14px);
+  }
+
+  .result-grid {
+    gap: clamp(5px, 1.5svh, 8px);
+    margin-top: clamp(7px, 1.8svh, 10px);
+  }
+
+  .result-row {
+    padding: clamp(6px, 1.7svh, 9px) clamp(8px, 2.2svw, 12px);
+    font-size: clamp(12px, 3.4svh, 15px);
+    line-height: 1.15;
+    border-radius: clamp(12px, 3svh, 15px);
+  }
+
+  .result-row strong {
+    font-size: clamp(14px, 4svh, 18px);
+  }
+
+  .option-screen .option-card,
+  .key-config-screen .option-card,
+  .touch-control-screen .option-card,
+  .stage-option-dialog .option-card {
+    width: min(98%, calc(100% - 4px));
+    height: calc(100% - 4px);
+    max-height: calc(100% - 4px);
+    padding: clamp(7px, 1.8svh, 10px) clamp(8px, 2.2svw, 12px);
+    border-radius: clamp(14px, 3.4svh, 18px);
+    overflow: hidden;
+  }
+
+  .option-card .menu-title {
+    margin-bottom: clamp(3px, 0.9svh, 5px);
+    font-size: clamp(20px, 5.5svh, 27px);
+    line-height: 1.04;
+  }
+
+  .option-card .menu-subtitle {
+    margin-bottom: clamp(4px, 1.2svh, 7px);
+    font-size: clamp(10px, 2.8svh, 12px);
+    line-height: 1.28;
+  }
+
+  .option-card > .option-scroll {
+    padding-right: 3px;
+  }
+
+  .option-section {
+    margin-bottom: clamp(6px, 1.6svh, 9px);
+  }
+
+  .option-section-title {
+    margin-bottom: clamp(3px, 0.9svh, 5px);
+    font-size: clamp(14px, 3.8svh, 17px);
+  }
+
+  .option-section-note {
+    margin-bottom: clamp(4px, 1.2svh, 6px);
+    font-size: clamp(10px, 2.8svh, 12px);
+    line-height: 1.3;
+  }
+
+  .option-list {
+    gap: clamp(5px, 1.4svh, 7px);
+    margin: clamp(6px, 1.6svh, 8px) 0;
+  }
+
+  .option-list label,
+  .key-config-row {
+    gap: clamp(4px, 1.2svh, 6px);
+    padding: clamp(5px, 1.4svh, 7px) clamp(7px, 2svw, 10px);
+    border-radius: clamp(12px, 3svh, 15px);
+    font-size: clamp(12px, 3.25svh, 15px);
+    line-height: 1.2;
+  }
+
+  .option-list select {
+    min-height: clamp(30px, 8svh, 36px);
+    padding: 4px 8px;
+    font-size: clamp(12px, 3.2svh, 14px);
+    border-radius: 11px;
+  }
+
+  .option-list input[type="range"] {
+    min-height: clamp(22px, 5.5svh, 28px);
+  }
+
+  .option-list input[type="checkbox"] {
+    width: clamp(18px, 5svh, 22px);
+    height: clamp(18px, 5svh, 22px);
+  }
+
+  .key-config-row {
+    grid-template-columns: minmax(88px, 0.8fr) minmax(180px, 1.7fr);
+  }
+
+  .key-config-buttons {
+    gap: 4px;
+  }
+
+  .touch-button-slot-grid {
+    grid-template-columns: repeat(5, minmax(56px, 1fr));
+    gap: 5px;
+  }
+
+  .touch-button-slot-item {
+    min-height: clamp(46px, 12svh, 56px);
+    padding: 5px;
+    border-radius: 12px;
+  }
+
+  .touch-button-slot-number {
+    width: clamp(20px, 5.4svh, 24px);
+    height: clamp(20px, 5.4svh, 24px);
+    font-size: clamp(10px, 2.8svh, 12px);
+  }
+
+  .touch-button-slot-value,
+  .touch-button-slot-select {
+    font-size: clamp(10px, 2.8svh, 12px);
+  }
+
+  .touch-button-slot-select {
+    min-height: clamp(28px, 7svh, 34px);
+    padding: 4px 6px;
+  }
+
+  .tutorial-screen .menu-card.tutorial-card-panel {
+    width: min(98%, calc(100% - 4px));
+    height: calc(100% - 4px);
+    max-height: calc(100% - 4px);
+    padding: clamp(7px, 1.8svh, 10px) clamp(8px, 2.2svw, 12px);
+    border-radius: clamp(14px, 3.4svh, 18px);
+  }
+
+  .tutorial-screen .menu-card.tutorial-card-panel .tutorial-header .menu-title {
+    font-size: clamp(20px, 5.4svh, 26px);
+    line-height: 1.04;
+  }
+
+  .tutorial-screen .menu-card.tutorial-card-panel .tutorial-header .menu-subtitle,
+  .tutorial-control-hint {
+    font-size: clamp(10px, 2.8svh, 12px);
+    line-height: 1.28;
+  }
+
+  .tutorial-tabs {
+    gap: 5px;
+    margin-bottom: clamp(5px, 1.4svh, 7px);
+  }
+
+  .tutorial-tab {
+    min-height: clamp(30px, 8svh, 36px);
+    padding: 5px 8px;
+    font-size: clamp(11px, 3svh, 13px);
+  }
+
+  .tutorial-scroll {
+    gap: clamp(6px, 1.6svh, 8px);
+    padding-right: 3px;
+  }
+
+  .tutorial-group h2 {
+    margin-bottom: clamp(4px, 1.1svh, 6px);
+    font-size: clamp(14px, 3.7svh, 17px);
+  }
+
+  .tutorial-card-list {
+    gap: clamp(5px, 1.4svh, 7px);
+  }
+
+  .tutorial-card {
+    grid-template-columns: clamp(36px, 10svh, 48px) minmax(0, 1fr);
+    gap: clamp(6px, 1.8svw, 9px);
+    padding: clamp(5px, 1.4svh, 7px) clamp(7px, 2svw, 10px);
+    border-radius: clamp(12px, 3svh, 15px);
+  }
+
+  .tutorial-card-icon {
+    width: clamp(36px, 10svh, 48px);
+    height: clamp(40px, 11svh, 52px);
+    border-radius: 12px;
+  }
+
+  .tutorial-card-icon img {
+    max-width: clamp(32px, 9svh, 44px);
+    max-height: clamp(36px, 10svh, 48px);
+  }
+
+  .tutorial-card h3 {
+    font-size: clamp(13px, 3.5svh, 16px);
+    line-height: 1.12;
+  }
+
+  .tutorial-card p,
+  .tutorial-notes,
+  .tutorial-empty {
+    font-size: clamp(10px, 2.8svh, 12px);
+    line-height: 1.36;
+  }
+
+  .tutorial-badge {
+    min-height: clamp(18px, 5svh, 22px);
+    padding: 3px 7px;
+    font-size: clamp(9px, 2.6svh, 11px);
+  }
+
+  .confirm-dialog-screen {
+    padding: clamp(5px, 1.6svh, 10px);
+  }
+
+  .confirm-dialog-card {
+    width: min(96%, 420px);
+    max-height: calc(100% - 8px);
+    padding: clamp(9px, 2.4svh, 13px) clamp(10px, 2.8svw, 15px);
+    border-radius: clamp(16px, 4svh, 20px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .confirm-dialog-mark {
+    width: clamp(28px, 8svh, 38px);
+    height: clamp(28px, 8svh, 38px);
+    margin-bottom: clamp(4px, 1.2svh, 7px);
+    font-size: clamp(16px, 4.8svh, 22px);
+    border-width: 2px;
+  }
+
+  .confirm-dialog-title {
+    margin-bottom: clamp(4px, 1.2svh, 7px);
+    font-size: clamp(17px, 4.8svh, 23px);
+    line-height: 1.1;
+  }
+
+  .confirm-dialog-message {
+    gap: 2px;
+    font-size: clamp(11px, 3.15svh, 13px);
+    line-height: 1.38;
+  }
+
+  .confirm-dialog-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: clamp(8px, 2.1svh, 12px);
+  }
+
+  .confirm-dialog-actions .confirm-dialog-button {
+    min-height: clamp(32px, 8.6svh, 40px);
+    padding: 6px 10px;
+    font-size: clamp(12px, 3.3svh, 15px);
+  }
+
+  .touch-left,
+  .touch-right {
+    bottom: calc(5px + env(safe-area-inset-bottom));
+    gap: clamp(5px, 1.5svh, 8px);
+  }
+
+  .touch-left {
+    left: calc(5px + env(safe-area-inset-left));
+  }
+
+  .touch-right {
+    right: calc(5px + env(safe-area-inset-right));
+  }
+
+  .touch-controls.touch-left-handed .touch-left {
+    right: calc(5px + env(safe-area-inset-right));
+  }
+
+  .touch-controls.touch-left-handed .touch-right {
+    left: calc(5px + env(safe-area-inset-left));
+  }
+
+  .touch-direction-pad {
+    width: min(var(--touch-pad-size, 134px), clamp(76px, 29svh, 112px), 26vw);
+    height: min(var(--touch-pad-size, 134px), clamp(76px, 29svh, 112px), 26vw);
+  }
+
+  .touch-direction-pad-base {
+    inset: clamp(10px, 3.8svh, 16px);
+  }
+
+  .touch-direction-pad-knob {
+    width: min(46px, 12svh);
+    height: min(46px, 12svh);
+  }
+
+  .touch-direction-pad-label {
+    bottom: clamp(5px, 1.8svh, 9px);
+    font-size: clamp(9px, 2.6svh, 11px);
+  }
+
+  .touch-button-grid {
+    --touch-button-grid-size: min(var(--touch-button-size, 68px), clamp(36px, 13.5svh, 54px), 10.8vw);
+    --touch-button-gap: clamp(4px, 1.4svh, 7px);
+  }
+
+  .touch-btn,
+  .touch-button-grid .touch-btn {
+    width: var(--touch-button-grid-size);
+    height: var(--touch-button-grid-size);
+    font-size: clamp(11px, 3.4svh, 16px);
+    border-width: 2px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-height: 430px) {
+  .menu-card:not(.title-card) .menu-subtitle,
+  .option-card .menu-subtitle,
+  .tutorial-screen .menu-card.tutorial-card-panel .tutorial-header .menu-subtitle {
+    display: none;
+  }
+
+  .title-main-heading {
+    font-size: clamp(22px, 8svh, 34px);
+  }
+
+  .title-status-item span {
+    display: none;
+  }
+
+  .dialogue-window {
+    grid-template-columns: clamp(42px, 16svh, 58px) minmax(0, 1fr);
+    padding: 6px 8px;
+  }
+
+  .dialogue-portrait-frame {
+    min-height: clamp(46px, 22svh, 62px);
+  }
+
+  .dialogue-text {
+    font-size: clamp(10.5px, 3.2svh, 12px);
+    line-height: 1.34;
+  }
+
+  .opening-text {
+    font-size: clamp(11px, 3.25svh, 13px);
+    line-height: 1.36;
+  }
+
+  .garden-header .menu-subtitle,
+  .stage-card .garden-header .menu-subtitle,
+  .stage-select span,
+  .stage-card .stage-select span,
+  .upgrade-select span {
+    display: none;
+  }
+
+  .touch-button-slot-grid {
+    grid-template-columns: repeat(5, minmax(50px, 1fr));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+  #game-shell {
+    width: min(
+      calc(var(--app-vw, 100vw) - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))),
+      calc((var(--app-vh, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))) * 16 / 9)
+    );
+  }
+
+  .title-screen {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .title-main-heading {
+    font-size: clamp(24px, 8.5svw, 38px);
+  }
+
+  .title-status-grid,
+  .title-actions,
+  .confirm-dialog-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogue-window {
+    width: min(98%, calc(100% - 6px));
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dialogue-portrait-frame {
+    display: none;
+  }
+
+  .touch-button-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

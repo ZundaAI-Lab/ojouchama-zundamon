@@ -139,7 +139,7 @@ export class Resident extends Actor {
       if (!this.flying && ctx?.physics && ctx?.collisionWorld) {
         const recoil = this.getMagicHitKnockbackVelocity();
         this.vx = recoil.vx;
-        this.vy = Math.min(this.vy + 760 * dt + recoil.vy, 420);
+        this.vy = composeMagicHitVerticalVelocity(Math.min(this.vy + 760 * dt, 420), recoil.vy);
         this.magicHitKnockbackConsumed = true;
         ctx.physics.moveActor(this, dt, ctx.collisionWorld.residentSolids, {
           useSlopeSurface: true,
@@ -185,9 +185,10 @@ export class Resident extends Actor {
   }
 
   applyMagicHitGroundVelocity() {
+    if (this.magicHitKnockbackConsumed || (this.magicHitKnockbackTimer || 0) <= 0) return;
     const recoil = this.getMagicHitKnockbackVelocity();
     this.vx += recoil.vx;
-    this.vy += recoil.vy;
+    this.vy = composeMagicHitVerticalVelocity(this.vy, recoil.vy);
     this.magicHitKnockbackConsumed = true;
   }
 
@@ -225,6 +226,14 @@ export class Resident extends Actor {
     this.hp -= amount;
     if (this.hp <= 0) this.alive = false;
   }
+}
+
+function composeMagicHitVerticalVelocity(currentVy, recoilVy) {
+  const current = Number.isFinite(currentVy) ? currentVy : 0;
+  const recoil = Number.isFinite(recoilVy) ? recoilVy : 0;
+  if (recoil < 0) return Math.min(current, recoil);
+  if (recoil > 0) return Math.max(current, recoil);
+  return current;
 }
 
 function getDefaultPhaseOffset(def) {

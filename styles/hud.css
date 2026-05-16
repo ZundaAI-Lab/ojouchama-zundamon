@@ -1,161 +1,230 @@
 /*
  * 責務: ステージHUD、バナー、スキルゲージのスタイルを担当する。
  * 更新ルール: HUD以外の画面カードや会話UIを追加しない。
+ * 更新ルール: 上中央は常設HUDの占有を避け、左上ステータス・右上スキルへ集約する。
+ * 更新ルール: HUD背景の色と不透明度は #hud-root のCSS変数で受け取り、保存設定はJS側で正規化する。
+ * 更新ルール: ステージ名以外の通知トーストは中央上部を空けるため左寄せにする。
  */
 #hud-root {
-  padding: 8px;
+  padding: 0;
+  --hud-panel-rgb: 255, 253, 247;
+  --hud-panel-alpha: 0.68;
 }
 
-/* patch_16: HUDは24pxを基準にし、横幅不足時も破綻しない2段構成へ調整 */
+#hud-root .panel {
+  background: rgba(var(--hud-panel-rgb), var(--hud-panel-alpha));
+  border: 1.5px solid rgba(177, 229, 177, 0.86);
+  border-radius: 20px;
+  box-shadow:
+    0 10px 26px rgba(67, 85, 58, 0.13),
+    0 0 0 1px rgba(255, 255, 255, 0.46) inset;
+  backdrop-filter: blur(8px) saturate(1.08);
+}
+
 .hud {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  top: 10px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
-  gap: 10px;
-  font-size: 24px;
-  line-height: 1.2;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  color: #374237;
+  font-size: clamp(15px, 1.18vw, 21px);
+  line-height: 1.18;
   pointer-events: none;
 }
 
 .hud-main,
 .hud-skills {
-  padding: 12px 14px;
+  box-sizing: border-box;
   min-width: 0;
+  pointer-events: none;
 }
 
 .hud-main {
+  width: clamp(220px, 26vw, 360px);
+  padding: clamp(8px, 0.78vw, 13px) clamp(11px, 0.95vw, 16px);
   display: grid;
-  gap: 8px;
+  gap: clamp(5px, 0.46vw, 8px);
 }
 
 .hud-row {
   display: flex;
   align-items: center;
-  gap: 10px 12px;
+  gap: 8px 11px;
   flex-wrap: wrap;
   min-width: 0;
 }
 
 .hud-title-row {
-  justify-content: space-between;
-  gap: 12px;
+  min-width: 0;
 }
 
 .hud-title {
   min-width: 0;
-  font-size: 26px;
-  line-height: 1.12;
+  font-size: clamp(17px, 1.28vw, 25px);
+  line-height: 1.1;
   font-weight: 900;
   color: #4f7f4f;
+  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.hud-stage-name {
-  display: inline-flex;
-  align-items: center;
-  max-width: min(52%, 360px);
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.72);
-  color: #7a6170;
-  font-size: 20px;
-  line-height: 1.1;
-  font-weight: 900;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.hud-stat-label {
+  font-weight: 800;
+  color: #3f4a40;
+}
+
+.hud-stat-row {
+  gap: 8px;
 }
 
 .hearts {
-  letter-spacing: 2px;
-  font-size: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: clamp(21px, 1.5vw, 30px);
   line-height: 1;
+  color: #2f4536;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
 }
 
 .hearts .lost {
   opacity: 0.25;
 }
 
+.hud-meter-row {
+  gap: 8px 14px;
+  font-weight: 800;
+}
+
+.hud-stat-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.hud-time-pair {
+  color: #44513f;
+}
+
+.hud-time-icon {
+  font-size: 0.95em;
+  line-height: 1;
+}
+
 .hud-icon {
-  width: 30px;
-  height: 30px;
+  width: clamp(20px, 1.45vw, 29px);
+  height: clamp(20px, 1.45vw, 29px);
   object-fit: contain;
   flex: 0 0 auto;
+  filter: drop-shadow(0 2px 2px rgba(60, 48, 55, 0.16));
 }
 
 .hud-skills {
+  width: clamp(205px, 22vw, 330px);
+  padding: clamp(8px, 0.76vw, 12px) clamp(10px, 0.9vw, 15px);
   display: grid;
-  gap: 8px;
+  gap: clamp(5px, 0.5vw, 8px);
   align-content: start;
 }
 
 .skill {
   display: grid;
-  grid-template-columns: 86px minmax(90px, 1fr) 86px;
+  grid-template-columns: minmax(48px, 0.45fr) minmax(76px, 1fr) minmax(36px, auto);
   align-items: center;
-  gap: 10px;
+  gap: clamp(7px, 0.7vw, 12px);
   min-width: 0;
 }
 
-.skill + .skill {
-  margin-top: 0;
-}
-
-.skill > span:first-child {
+.skill-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #5b6658;
+  font-weight: 800;
 }
 
 .skill [data-label] {
   text-align: right;
+  font-size: 0.9em;
   font-weight: 900;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #334333;
 }
 
 .skill-bar {
-  height: 16px;
+  height: clamp(8px, 0.72vw, 12px);
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(80, 90, 80, 0.12);
+  background: rgba(69, 88, 68, 0.11);
+  box-shadow: 0 0 0 1px rgba(82, 117, 82, 0.14) inset;
 }
 
 .skill-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #c3f2a4, #71ca78);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c7efb1, #72c675);
+  box-shadow: 0 0 8px rgba(120, 203, 112, 0.26);
 }
 
 .skill.ready .skill-fill {
   width: 100% !important;
-  background: linear-gradient(90deg, #ffe494, #f2ba58);
+  background: linear-gradient(90deg, #ffe7a3, #efbd5e);
+  box-shadow: 0 0 9px rgba(235, 185, 91, 0.28);
+}
+
+.stage-name-pop,
+.stage-banner {
+  position: absolute;
+  pointer-events: none;
+  color: #6c4f5d;
+  text-align: center;
+  font-weight: 900;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.stage-name-pop {
+  left: 50%;
+  top: 14px;
+  transform: translate(-50%, -7px);
+  max-width: min(38%, 560px);
+  padding: 8px 18px;
+  font-size: clamp(15px, 1.1vw, 21px);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-name-pop.show {
+  opacity: 0.9;
+  transform: translate(-50%, 0);
 }
 
 .stage-banner {
-  position: absolute;
-  left: 50%;
-  top: 82px;
-  transform: translateX(-50%);
-  max-width: min(92%, 860px);
-  padding: 12px 20px;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 900;
-  color: #6c4f5d;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.25s ease;
+  left: 12px;
+  top: clamp(112px, 10.2vw, 156px);
+  transform: translateY(-8px);
+  max-width: min(calc(100% - 24px), 560px);
+  padding: 11px 18px;
+  font-size: clamp(17px, 1.25vw, 24px);
+  line-height: 1.24;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .stage-banner.show {
   opacity: 1;
+  transform: translateY(0);
 }
 
 #hud-root.dialogue-mode {
@@ -168,224 +237,23 @@
   pointer-events: none;
 }
 
+.stage-name-pop.dialogue-mode,
 .stage-banner.dialogue-mode {
   display: none;
-}
-
-@media (max-width: 980px), (max-height: 640px) {
-  #hud-root {
-    padding: 6px;
-  }
-
-  .hud {
-    left: 8px;
-    right: 8px;
-    top: 8px;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    font-size: 24px;
-  }
-
-  .hud-main,
-  .hud-skills {
-    padding: 10px 12px;
-  }
-
-  .hud-title {
-    font-size: 24px;
-  }
-
-  .hud-stage-name {
-    max-width: 48%;
-    font-size: 18px;
-  }
-
-  .hearts {
-    font-size: 28px;
-  }
-
-  .hud-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .hud-skills {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .skill {
-    grid-template-columns: 1fr;
-    gap: 5px;
-  }
-
-  .skill > span:first-child,
-  .skill [data-label] {
-    text-align: center;
-  }
-
-  .skill-bar {
-    height: 14px;
-  }
-
-  .stage-banner {
-    top: 92px;
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 620px), (max-height: 460px) {
-  .hud {
-    left: 6px;
-    right: 6px;
-    top: 6px;
-    gap: 6px;
-    font-size: 20px;
-  }
-
-  .hud-main,
-  .hud-skills {
-    padding: 8px 9px;
-    border-radius: 16px;
-  }
-
-  .hud-main {
-    gap: 6px;
-  }
-
-  .hud-title {
-    font-size: 21px;
-  }
-
-  .hud-stage-name {
-    max-width: 100%;
-    font-size: 16px;
-    padding: 4px 9px;
-  }
-
-  .hearts {
-    font-size: 24px;
-  }
-
-  .hud-icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  .hud-skills {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .skill {
-    font-size: 18px;
-    gap: 4px;
-  }
-
-  .skill [data-label] {
-    font-size: 16px;
-  }
-
-  .skill-bar {
-    height: 12px;
-  }
-
-  .stage-banner {
-    top: 78px;
-    padding: 10px 14px;
-    font-size: 20px;
-  }
-}
-
-/* patch_20: トースト文章のはみ出し対策。中央寄せをやめて左開始にする */
-.stage-banner {
-  left: 14px;
-  right: 14px;
-  transform: none;
-  width: auto;
-  max-width: none;
-  box-sizing: border-box;
-  text-align: left;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 980px), (max-height: 640px) {
-  .stage-banner {
-    left: 10px;
-    right: 10px;
-  }
-}
-
-@media (max-width: 620px), (max-height: 460px) {
-  .stage-banner {
-    left: 8px;
-    right: 8px;
-  }
-}
-
-/* patch_21: トーストは枠を広げず、開始位置だけ左に寄せる */
-.stage-banner {
-  left: 14px;
-  right: auto;
-  transform: none;
-  width: auto;
-  max-width: min(calc(100% - 28px), 860px);
-  text-align: center;
-  overflow-wrap: normal;
-}
-
-@media (max-width: 980px), (max-height: 640px) {
-  .stage-banner {
-    left: 10px;
-    right: auto;
-    max-width: min(calc(100% - 20px), 860px);
-  }
-}
-
-@media (max-width: 620px), (max-height: 460px) {
-  .stage-banner {
-    left: 8px;
-    right: auto;
-    max-width: calc(100% - 16px);
-  }
-}
-
-/* patch_22: トースト開始位置を「時間」表示より右側へ戻す */
-.stage-banner {
-  left: clamp(230px, 34%, 420px);
-  right: auto;
-  transform: none;
-  width: auto;
-  max-width: 860px;
-}
-
-@media (max-width: 980px), (max-height: 640px) {
-  .stage-banner {
-    left: clamp(190px, 36%, 280px);
-    right: auto;
-  }
-}
-
-@media (max-width: 620px), (max-height: 460px) {
-  .stage-banner {
-    left: 150px;
-    right: auto;
-  }
 }
 
 /* 風船ライドHUD: 残り風船と封印中アクションを表示する */
 .hud-balloon {
   position: absolute;
-  left: 12px;
-  top: 176px;
+  left: 0;
+  top: calc(100% + 10px);
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  font-size: 22px;
+  padding: 9px 13px;
+  font-size: clamp(16px, 1.08vw, 22px);
   font-weight: 900;
   color: #725168;
-  pointer-events: none;
 }
 
 .hud-balloon[hidden] {
@@ -430,16 +298,123 @@
 }
 
 @media (max-width: 980px), (max-height: 640px) {
+  .hud {
+    left: 9px;
+    right: 9px;
+    top: 9px;
+    gap: 10px;
+    font-size: clamp(13px, 2.1vw, 18px);
+  }
+
+  .hud-main {
+    width: clamp(195px, 41vw, 300px);
+    padding: 8px 11px;
+  }
+
+  .hud-skills {
+    width: clamp(182px, 38vw, 280px);
+    padding: 8px 10px;
+  }
+
+  .skill {
+    grid-template-columns: minmax(42px, 0.42fr) minmax(58px, 1fr) minmax(31px, auto);
+    gap: 7px;
+  }
+
+  .stage-name-pop {
+    top: 58px;
+    max-width: min(56%, 420px);
+    padding: 6px 14px;
+  }
+
+  .stage-banner {
+    left: 9px;
+    top: 94px;
+    max-width: min(calc(100% - 18px), 500px);
+  }
+
   .hud-balloon {
-    left: 10px;
-    top: auto;
-    bottom: 78px;
-    font-size: 20px;
-    padding: 8px 12px;
+    top: calc(100% + 8px);
+    padding: 8px 11px;
   }
 
   .hud-balloon-icon {
     width: 23px;
     height: 28px;
+  }
+}
+
+@media (max-width: 620px), (max-height: 460px) {
+  .hud {
+    left: 6px;
+    right: 6px;
+    top: 6px;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .hud-main {
+    width: 188px;
+    padding: 7px 8px;
+    border-radius: 15px;
+    gap: 4px;
+  }
+
+  .hud-skills {
+    width: 176px;
+    padding: 7px 8px;
+    border-radius: 15px;
+    gap: 4px;
+  }
+
+  .hud-title {
+    font-size: 15px;
+  }
+
+  .hearts {
+    font-size: 19px;
+  }
+
+  .hud-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .hud-meter-row {
+    gap: 5px 8px;
+  }
+
+  .skill {
+    grid-template-columns: 36px minmax(44px, 1fr) 26px;
+    gap: 5px;
+  }
+
+  .skill [data-label] {
+    font-size: 11px;
+  }
+
+  .skill-bar {
+    height: 7px;
+  }
+
+  .stage-name-pop {
+    top: 52px;
+    max-width: calc(100% - 14px);
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+
+  .stage-banner {
+    left: 6px;
+    top: 88px;
+    max-width: min(calc(100% - 12px), 420px);
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+
+  .hud-balloon {
+    top: calc(100% + 6px);
+    padding: 7px 9px;
+    font-size: 13px;
   }
 }

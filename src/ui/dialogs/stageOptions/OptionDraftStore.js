@@ -1,6 +1,7 @@
 /**
  * 責務: ステージ内オプションで編集する一時設定と保存処理を管理する。
  * 更新ルール: 各ページControllerはDOM操作だけを持ち、BGM/SE音量を含む設定値の正規化・保存規則はここへ集約する。
+ * 更新ルール: HUD外観プレビューはCSS変数の反映だけを行い、HUD DOM構造は触らない。
  */
 import {
   CONFIGURABLE_KEY_ACTIONS,
@@ -9,6 +10,8 @@ import {
   normalizeKeyBindings,
   normalizeTouchConfig,
 } from '../../../config/controlSettings.js';
+import { normalizeHudPanelColor, normalizeHudPanelOpacity } from '../../../config/hudSettings.js';
+import { applyHudPanelStyle } from '../../hudPanelStyle.js';
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
@@ -33,6 +36,8 @@ export class OptionDraftStore {
       sfxVolume: settings.sfxVolume,
       muted: settings.muted,
       difficulty: settings.difficulty,
+      hudPanelColor: settings.hudPanelColor,
+      hudPanelOpacity: settings.hudPanelOpacity,
     };
     return this.optionSettings;
   }
@@ -59,11 +64,34 @@ export class OptionDraftStore {
     return draft;
   }
 
+  setOptionHudPanelColor(value) {
+    const draft = this.ensureOptionSettings();
+    draft.hudPanelColor = normalizeHudPanelColor(value);
+    return draft;
+  }
+
+  setOptionHudPanelOpacity(value) {
+    const draft = this.ensureOptionSettings();
+    draft.hudPanelOpacity = normalizeHudPanelOpacity(value);
+    return draft;
+  }
+
   previewAudioSettings() {
     this.app.audio.applySettings({
       ...this.app.save.load().settings,
       ...this.ensureOptionSettings(),
     });
+  }
+
+  previewHudSettings() {
+    applyHudPanelStyle(this.app.hudRoot, {
+      ...this.app.save.load().settings,
+      ...this.ensureOptionSettings(),
+    });
+  }
+
+  restoreSavedHudSettings() {
+    applyHudPanelStyle(this.app.hudRoot, this.app.save.load().settings);
   }
 
   saveOptionSettings() {
@@ -73,6 +101,8 @@ export class OptionDraftStore {
       sfxVolume: draft.sfxVolume,
       muted: draft.muted,
       difficulty: draft.difficulty,
+      hudPanelColor: draft.hudPanelColor,
+      hudPanelOpacity: draft.hudPanelOpacity,
     });
   }
 

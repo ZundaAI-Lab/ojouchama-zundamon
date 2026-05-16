@@ -10,6 +10,7 @@
  * 更新ルール: 夢のしずく取得はゴール時まで未確定としてRuntimeに保持し、保存処理はStageClearServiceで行う。
  * 更新ルール: 次ステージ画像の先読みはassetLoadPlansの算出結果だけを使い、Runtime初期化手順へステージ解析を増やさない。
  * 更新ルール: 魔法命中ヒットストップの初期値だけをここで持ち、停止処理はStageUpdateFlowへ委譲する。
+ * 更新ルール: ステージ名トーストは開始会話の完了後に一度だけ表示し、HUD側の常時更新へ戻さない。
  */
 import { Hud } from '../../ui/Hud.js';
 import { DialogueView } from '../../ui/DialogueView.js';
@@ -92,7 +93,7 @@ export async function enterStageRuntime(runtime) {
   runtime.nanoRescueEvent = new NanoRescueEventSystem(runtime);
   runtime.stageEventSystem = new StageEventSystem(runtime);
 
-  runtime.hud = new Hud(runtime.app.hudRoot, runtime.app.assets);
+  runtime.hud = new Hud(runtime.app.hudRoot, runtime.app.assets, runtime.settings);
   runtime.dialogue = new DialogueView(runtime.app.uiRoot, runtime.app.assets, active => runtime.setDialogueMode(active));
 
   runtime.coins = runtime.routeProgressBase.coins;
@@ -105,6 +106,12 @@ export async function enterStageRuntime(runtime) {
   runtime.pendingDreamDropStageIds = new Set();
   runtime.flashTimer = 0;
   runtime.magicHitStopTimer = 0;
+  runtime.stageNameToastShown = false;
+  runtime.showStageNameToast = () => {
+    if (runtime.stageNameToastShown) return;
+    runtime.stageNameToastShown = true;
+    runtime.hud?.showStageName(runtime.stage?.name || '');
+  };
   runtime.restartTimer = 0;
   runtime.pendingNanoRescueTutorial = false;
   runtime.tutorialDialog = null;
@@ -119,8 +126,14 @@ export async function enterStageRuntime(runtime) {
   runtime.touchRoot = runtime.touchControls.mount();
   runtime.updateHud();
 
-  if (runtime.stage.introDialogue && !runtime.params.skipIntro && !runtime.skipDialogueEvents) {
-    runtime.dialogue.start(runtime.stage.introDialogue, () => runtime.app.audio.playSfx('dialog_next'), { position: 'center' });
+  const shouldShowIntroDialogue = runtime.stage.introDialogue && !runtime.params.skipIntro && !runtime.skipDialogueEvents;
+  if (shouldShowIntroDialogue) {
+    runtime.dialogue.start(runtime.stage.introDialogue, () => {
+      runtime.app.audio.playSfx('dialog_next');
+      runtime.showStageNameToast();
+    }, { position: 'center' });
+  } else {
+    runtime.showStageNameToast();
   }
 
   runtime.app.assets.preloadKeys(getNextStagePrefetchAssetKeys(runtime.stage), { timeout: 1800 });

@@ -1,43 +1,62 @@
 /**
  * 責務: ステージHUDのDOM生成とHP・コイン・時間・スキル表示更新を担当する。
  * 更新ルール: ゲームルールやセーブ更新を持ち込まない。
+ * 更新ルール: 上中央は常設HUDを置かず、ステージ名はRuntimeから明示されたタイミングだけ短時間表示する。
  */
 import { formatTime } from '../utils/math.js';
+import { applyHudPanelStyle } from './hudPanelStyle.js';
 
 export class Hud {
-  constructor(root, assets) {
+  constructor(root, assets, settings = {}) {
     this.root = root;
     this.assets = assets;
     this.element = document.createElement('div');
     this.element.className = 'hud';
     this.element.innerHTML = `
       <div class="hud-main panel">
-        <div class="hud-row hud-title-row"><span class="hud-title">お嬢ちゃまずんだもん</span><span class="hud-stage-name" data-stage-name></span></div>
-        <div class="hud-row"><span>HP</span><span class="hearts" data-hp></span></div>
-        <div class="hud-row">
-          <img class="hud-icon" data-icon="coin" alt="coin" />
-          <span data-coins>0</span>
-          <img class="hud-icon" data-icon="teacup" alt="teacup" />
-          <span data-teacups>0</span>
-          <span>時間 <strong data-time>00:00</strong></span>
+        <div class="hud-row hud-title-row"><span class="hud-title">お嬢ちゃまずんだもん</span></div>
+        <div class="hud-row hud-stat-row">
+          <span class="hud-stat-label">HP</span><span class="hearts" data-hp></span>
+        </div>
+        <div class="hud-row hud-meter-row">
+          <span class="hud-stat-pair"><img class="hud-icon" data-icon="coin" alt="coin" /><span data-coins>0</span></span>
+          <span class="hud-stat-pair"><img class="hud-icon" data-icon="teacup" alt="teacup" /><span data-teacups>0</span></span>
+          <span class="hud-stat-pair hud-time-pair"><span class="hud-time-icon">🕒</span><span> <strong data-time>00:00</strong></span></span>
         </div>
       </div>
       <div class="hud-skills panel">
-        <div class="skill" data-skill="magic"><span>魔法</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
-        <div class="skill" data-skill="bow"><span>おじぎ</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
-        <div class="skill" data-skill="tea"><span>お茶</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
+        <div class="skill" data-skill="magic"><span class="skill-name">魔法</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
+        <div class="skill" data-skill="bow"><span class="skill-name">おじぎ</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
+        <div class="skill" data-skill="tea"><span class="skill-name">お茶</span><div class="skill-bar"><div class="skill-fill"></div></div><span data-label></span></div>
       </div>
       <div class="hud-balloon panel" data-balloon-hud hidden>
         <span class="hud-balloon-title">風船</span>
         <span class="hud-balloon-icons" data-balloon-icons></span>
       </div>
     `;
+    this.stageNamePop = document.createElement('div');
+    this.stageNamePop.className = 'stage-name-pop panel';
     this.banner = document.createElement('div');
     this.banner.className = 'stage-banner panel';
-    this.root.append(this.element, this.banner);
+    this.root.append(this.element, this.stageNamePop, this.banner);
 
     this.element.querySelector('[data-icon="coin"]').src = assets.getImage('icon_coin')?.src || '';
     this.element.querySelector('[data-icon="teacup"]').src = assets.getImage('icon_teacup')?.src || '';
+    this.applySettings(settings);
+  }
+
+  applySettings(settings = {}) {
+    applyHudPanelStyle(this.root, settings);
+  }
+
+  showStageName(text) {
+    if (!text) return;
+    this.stageNamePop.textContent = text;
+    this.stageNamePop.classList.remove('show');
+    clearTimeout(this.stageNameTimer);
+    const nextFrame = globalThis.requestAnimationFrame || (callback => globalThis.setTimeout(callback, 0));
+    nextFrame(() => this.stageNamePop.classList.add('show'));
+    this.stageNameTimer = setTimeout(() => this.stageNamePop.classList.remove('show'), 2600);
   }
 
   showBanner(text) {
@@ -50,6 +69,7 @@ export class Hud {
   setDialogueMode(active) {
     this.root.classList.toggle('dialogue-mode', active);
     this.element.classList.toggle('dialogue-mode', active);
+    this.stageNamePop.classList.toggle('dialogue-mode', active);
     this.banner.classList.toggle('dialogue-mode', active);
   }
 
@@ -59,7 +79,6 @@ export class Hud {
     this.element.querySelector('[data-coins]').textContent = `${state.coins}`;
     this.element.querySelector('[data-teacups]').textContent = `${state.teacups}`;
     this.element.querySelector('[data-time]').textContent = formatTime(state.time);
-    this.element.querySelector('[data-stage-name]').textContent = state.stageName || '';
     this.updateSkill('magic', state.magicRate, state.magicReady);
     this.updateSkill('bow', state.bowRate, state.bowReady, false, state.bowReady ? null : 'NG');
     this.updateSkill('tea', state.teacups > 0 ? state.teaRate : 0, state.teaReady, state.teaBoosting, state.teaReady ? null : 'NG');

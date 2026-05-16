@@ -2,6 +2,7 @@
  * 責務: オプション画面の設定入力DOMを生成する。
  * 更新ルール: 設定値の検証・保存・プレビュー反映は OptionSettingsPageController / OptionDraftStore に残し、音量入力はBGM/SEを個別に表示する。
  * 更新ルール: リサイズ用の画面種別は wrapper class だけでCSSへ渡し、寸法計算はCSSへ集約する。
+ * 更新ルール: HUD外観設定は色入力と濃さ入力の初期DOMだけを生成し、保存・プレビュー処理はScene/Controllerへ渡す。
  */
 export class OptionView {
   constructor(app) {
@@ -38,6 +39,22 @@ export class OptionView {
                   <option value="normal" ${settings.difficulty === 'normal' ? 'selected' : ''}>おでかけ</option>
                   <option value="royal" ${settings.difficulty === 'royal' ? 'selected' : ''}>ロイヤル</option>
                 </select>
+              </label>
+            </div>
+          </section>
+
+
+          <section class="option-section">
+            <h2 class="option-section-title">HUD表示</h2>
+            <p class="option-section-note">ステージ中HUDの背景色と半透明の濃さを調整するの。</p>
+            <div class="option-list">
+              <label class="option-item option-color-label" data-menu-item="true" data-option="hudPanelColor" tabindex="0">
+                <span>HUD背景色 <strong data-option-value="hudPanelColor"></strong></span>
+                <input id="hud-panel-color" class="option-color-input" type="color" value="${settings.hudPanelColor}">
+              </label>
+              <label class="option-item" data-menu-item="true" data-option="hudPanelOpacity" tabindex="0">
+                <span>HUD背景の濃さ <strong data-option-value="hudPanelOpacity"></strong></span>
+                <input id="hud-panel-opacity" type="range" min="0.35" max="0.92" step="0.01" value="${settings.hudPanelOpacity}">
               </label>
             </div>
           </section>

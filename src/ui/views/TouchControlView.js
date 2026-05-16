@@ -60,7 +60,7 @@ export class TouchControlView {
           </section>
           <section class="option-section touch-button-slot-section">
             <h2 class="option-section-title">機能ボタン割り当て</h2>
-            <p class="option-section-note">上段が1〜5、下段が6〜10。未割り当ての場所はゲーム画面に表示しません。</p>
+            <p class="option-section-note">上段が1〜5、下段が6〜10。既定は4=茶、5=なの、6=ポーズ、8=礼、9=魔法、10=飛。未割り当ての場所はゲーム画面に表示しません。</p>
             <div class="touch-button-slot-grid">
               ${this.renderButtonSlotItems(touchControls)}
             </div>

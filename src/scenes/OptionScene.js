@@ -3,12 +3,20 @@
  * 更新ルール: DOM生成は OptionView に任せ、BGM/SE音量を含む設定値の変更規則と保存処理をここで管理する。
  * 更新ルール: 操作設定の編集は KeyConfigScene / TouchControlScene に分離し、この画面は入口ボタンだけを持つ。
  * 更新ルール: 呼び出し元は params.returnSceneId / returnParams で受け取り、SceneクラスではなくScene IDだけで復帰先を扱う。
+ * 更新ルール: HUD外観設定はセーブ値へ保存し、プレビュー反映はCSS変数の更新だけで行う。
  */
 import { BaseScene } from './BaseScene.js';
 import { DIFFICULTY_DEFS } from '../config/difficultyDefs.js';
 import { SCENES } from '../config/sceneIds.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { OptionView } from '../ui/views/OptionView.js';
+import {
+  getAdjacentHudPanelColor,
+  getHudPanelColorLabel,
+  normalizeHudPanelColor,
+  normalizeHudPanelOpacity,
+} from '../config/hudSettings.js';
+import { applyHudPanelStyle } from '../ui/hudPanelStyle.js';
 
 const DIFFICULTY_ORDER = ['fluffy', 'normal', 'royal'];
 
@@ -32,11 +40,15 @@ export class OptionScene extends BaseScene {
     this.sfxInput = this.wrapper.querySelector('#sfx');
     this.mutedInput = this.wrapper.querySelector('#muted');
     this.difficultyInput = this.wrapper.querySelector('#difficulty');
+    this.hudPanelColorInput = this.wrapper.querySelector('#hud-panel-color');
+    this.hudPanelOpacityInput = this.wrapper.querySelector('#hud-panel-opacity');
 
     this.bgmInput.addEventListener('input', () => this.setVolume('bgmVolume', Number(this.bgmInput.value)));
     this.sfxInput.addEventListener('input', () => this.setVolume('sfxVolume', Number(this.sfxInput.value)));
     this.mutedInput.addEventListener('change', () => this.setMuted(this.mutedInput.checked));
     this.difficultyInput.addEventListener('change', () => this.setDifficulty(this.difficultyInput.value));
+    this.hudPanelColorInput.addEventListener('input', () => this.setHudPanelColor(this.hudPanelColorInput.value));
+    this.hudPanelOpacityInput.addEventListener('input', () => this.setHudPanelOpacity(Number(this.hudPanelOpacityInput.value)));
 
     this.wrapper.querySelector('#key-config-btn').addEventListener('click', () => this.openControlScene(SCENES.KEY_CONFIG));
     this.wrapper.querySelector('#touch-control-btn').addEventListener('click', () => this.openControlScene(SCENES.TOUCH_CONTROL));
@@ -72,16 +84,32 @@ export class OptionScene extends BaseScene {
     this.syncOptionUi();
   }
 
+  setHudPanelColor(value) {
+    this.draftSettings.hudPanelColor = normalizeHudPanelColor(value);
+    this.syncOptionUi();
+    this.previewHudSettings();
+  }
+
+  setHudPanelOpacity(value) {
+    this.draftSettings.hudPanelOpacity = normalizeHudPanelOpacity(value);
+    this.syncOptionUi();
+    this.previewHudSettings();
+  }
+
   syncOptionUi() {
     if (!this.wrapper) return;
     this.bgmInput.value = String(this.draftSettings.bgmVolume);
     this.sfxInput.value = String(this.draftSettings.sfxVolume);
     this.mutedInput.checked = this.draftSettings.muted;
     this.difficultyInput.value = this.draftSettings.difficulty;
+    this.hudPanelColorInput.value = this.draftSettings.hudPanelColor;
+    this.hudPanelOpacityInput.value = String(this.draftSettings.hudPanelOpacity);
     this.wrapper.querySelector('[data-option-value="bgm"]').textContent = `${Math.round(this.draftSettings.bgmVolume * 100)}%`;
     this.wrapper.querySelector('[data-option-value="sfx"]').textContent = `${Math.round(this.draftSettings.sfxVolume * 100)}%`;
     this.wrapper.querySelector('[data-option-value="muted"]').textContent = this.draftSettings.muted ? 'ON' : 'OFF';
     this.wrapper.querySelector('[data-option-value="difficulty"]').textContent = DIFFICULTY_DEFS[this.draftSettings.difficulty]?.label || 'おでかけ';
+    this.wrapper.querySelector('[data-option-value="hudPanelColor"]').textContent = getHudPanelColorLabel(this.draftSettings.hudPanelColor);
+    this.wrapper.querySelector('[data-option-value="hudPanelOpacity"]').textContent = `${Math.round(this.draftSettings.hudPanelOpacity * 100)}%`;
   }
 
   adjustSelectedOption(item, direction) {
@@ -98,6 +126,8 @@ export class OptionScene extends BaseScene {
       const next = (current + direction + DIFFICULTY_ORDER.length) % DIFFICULTY_ORDER.length;
       this.setDifficulty(DIFFICULTY_ORDER[next]);
     }
+    if (option === 'hudPanelColor') this.setHudPanelColor(getAdjacentHudPanelColor(this.draftSettings.hudPanelColor, direction));
+    if (option === 'hudPanelOpacity') this.setHudPanelOpacity(this.draftSettings.hudPanelOpacity + direction * 0.05);
     this.app.audio.playSfx('ui_decide');
   }
 
@@ -116,6 +146,10 @@ export class OptionScene extends BaseScene {
     this.app.audio.applySettings({ ...this.draftSettings });
   }
 
+  previewHudSettings() {
+    applyHudPanelStyle(this.app.hudRoot, this.draftSettings);
+  }
+
   openControlScene(sceneId) {
     this.app.audio.applySettings();
     this.app.audio.playSfx('ui_decide');
@@ -129,11 +163,13 @@ export class OptionScene extends BaseScene {
 
   cancelAndReturn() {
     this.app.audio.applySettings();
+    applyHudPanelStyle(this.app.hudRoot, this.app.save.load().settings);
     this.returnToCaller();
   }
 
   saveAndReturn() {
     this.app.save.updateSettings({ ...this.draftSettings });
+    applyHudPanelStyle(this.app.hudRoot, this.draftSettings);
     this.app.audio.applySettings();
     this.app.audio.playSfx('ui_decide');
     this.returnToCaller();
