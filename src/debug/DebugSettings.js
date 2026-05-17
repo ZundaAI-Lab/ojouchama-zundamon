@@ -11,6 +11,7 @@ const DEFAULT_DEBUG_FLAGS = Object.freeze({
   infiniteHp: false,
   showHitboxes: false,
   showPerformance: false,
+  capturePerformanceReport: false,
 });
 
 function hasDebugQuery() {

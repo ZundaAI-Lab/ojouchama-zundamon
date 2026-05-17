@@ -1,6 +1,7 @@
 /**
  * 責務: ゲーム全体から使う音声APIの窓口として、BGM/SE/設定適用を各音声モジュールへ委譲する。
  * 更新ルール: playBgm/stopBgm/fadeOutBgm/playSfx/applySettings/resume/update を公開APIとして維持し、曲データと発音処理は専用ファイルへ分離する。
+ * 更新ルール: 負荷詳細レポートはsetPerformanceReporterでBGM側へ渡し、通常再生中に取得関数呼び出しを挟まない。
  */
 import { AudioContextGraph } from './AudioContextGraph.js';
 import { BgmTrackPlayer } from './bgm/BgmTrackPlayer.js';
@@ -8,10 +9,10 @@ import { SfxPlayer } from './SfxPlayer.js';
 import { resolveBgmTrack } from '../data/audio/bgmTrackDefs.js';
 
 export class AudioSystem {
-  constructor(save) {
+  constructor(save, performanceReporter = null) {
     this.save = save;
     this.graph = new AudioContextGraph(save);
-    this.bgmPlayer = new BgmTrackPlayer(() => this.ctx, () => this.bgmGain);
+    this.bgmPlayer = new BgmTrackPlayer(() => this.ctx, () => this.bgmGain, performanceReporter);
     this.sfxPlayer = new SfxPlayer(() => this.ctx, () => this.sfxGain);
   }
 
@@ -21,6 +22,10 @@ export class AudioSystem {
   get sfxGain() { return this.graph.sfxGain; }
 
   ensure() { this.graph.ensure(); }
+
+  setPerformanceReporter(performanceReporter = null) {
+    this.bgmPlayer.setPerformanceReporter(performanceReporter);
+  }
 
   resume() {
     this.ensure();

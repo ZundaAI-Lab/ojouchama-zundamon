@@ -15,10 +15,14 @@ import { MagicHitReactionService } from './MagicHitReactionService.js';
 
 export class StageCollisionResolver {
   static handle(runtime) {
+    const perf = runtime.app.performanceReporter;
+    let residentContactChecks = 0;
+    let projectileContactChecks = 0;
     ItemCollectionService.collectWithPlayerAndNano(runtime);
 
     for (const resident of runtime.residents) {
       if (!resident.alive || !isNormalResident(resident) || !resident.contactDamage) continue;
+      if (perf) residentContactChecks += 1;
       if (CollisionSystem.intersectsDamageBounds(runtime.player, resident) && resident.stunTimer <= 0) {
         this.hitPlayer(runtime, runtime.player.x < resident.x ? -1 : 1);
       }
@@ -26,6 +30,7 @@ export class StageCollisionResolver {
 
     for (const p of runtime.projectiles) {
       if (!p.alive) continue;
+      if (perf) projectileContactChecks += 1;
       if (this.handleProjectileContactEffect(runtime, p)) continue;
 
       if (p.faction === 'player') {
@@ -34,6 +39,13 @@ export class StageCollisionResolver {
         p.alive = false;
         this.hitPlayer(runtime, runtime.player.x < p.x ? -1 : 1);
       }
+    }
+
+    if (perf) {
+      perf.addFrameCounters({
+        residentContactChecks,
+        projectileContactChecks,
+      });
     }
 
     if (!runtime.dialogue.active && CollisionSystem.intersectsActor(runtime.player, runtime.goal) && (!runtime.boss || !runtime.boss.alive)) {

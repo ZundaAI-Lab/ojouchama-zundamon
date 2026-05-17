@@ -3,12 +3,15 @@
  * 更新ルール: デバッグ用の実ゲーム設定はDebugSettingsへ集約し、このSceneではUI接続だけを担当する。
  * 更新ルール: 自動テストの内容はsrc/debug/tests配下へ置き、このSceneでは実行ボタンと結果表示の接続だけを担当する。
  * 更新ルール: 進行フラグの表示定義とUI接続はここで扱い、保存形式の正規化はSaveSystemへ委譲する。
+ * 更新ルール: 詳細負荷レポートの取得ON/OFFはGameAppの遅延読込APIへ委譲し、レポート保存はメモリ保持だけにする。
+ * 更新ルール: 指定ステージ直行の候補はSTAGE_ROUTESを正本にし、デバッグ画面側にステージID固定配列を持たない。
  */
 import { BaseScene } from './BaseScene.js';
 import { SCENES } from '../config/sceneIds.js';
 import { MenuNavigator } from '../ui/MenuNavigator.js';
 import { DebugView } from '../ui/views/DebugView.js';
 import { WORLDS } from '../data/worlds.js';
+import { STAGE_ROUTES } from '../data/stages.js';
 import { drawCoverBackground } from '../utils/background.js';
 
 const DEBUG_PROGRESS_FLAG_HANDLERS = Object.freeze({
@@ -44,14 +47,25 @@ function createProgressFlagRows(save) {
   }));
 }
 
-const DEBUG_BOSS_STAGES = Object.freeze([
-  { label: '1面 ボス', stageId: 'candy_forest_boss' },
-  { label: '2面 ボス', stageId: 'teacup_castle_boss' },
-  { label: '3面 ボス', stageId: 'ribbon_garden_boss' },
-  { label: '4面 ボス', stageId: 'plush_cloud_boss' },
-  { label: '5面 ボス', stageId: 'picturebook_library_boss' },
-  { label: '6面 ボス', stageId: 'dream_tree_boss' },
-]);
+function createDebugStageGroups() {
+  return STAGE_ROUTES.map((route, worldIndex) => {
+    const world = WORLDS.find(item => item.id === route.id || item.routeId === route.id);
+    return {
+      id: route.id,
+      title: world?.title || route.id,
+      stages: route.stages.map((stage, stageIndex) => ({
+        stageId: stage.id,
+        label: `${worldIndex + 1}-${stageIndex + 1}${stage.boss ? ' ボス' : ''}`,
+        name: stage.name || stage.route?.areaName || stage.id,
+      })),
+    };
+  });
+}
+
+const DEBUG_STAGE_GROUPS = Object.freeze(createDebugStageGroups().map(group => Object.freeze({
+  ...group,
+  stages: Object.freeze(group.stages.map(stage => Object.freeze(stage))),
+})));
 
 export class DebugScene extends BaseScene {
   async enter() {
@@ -63,16 +77,51 @@ export class DebugScene extends BaseScene {
     this.view = new DebugView();
     const wrapper = this.view.render({
       settings: this.app.debug.snapshot(),
-      bossStages: DEBUG_BOSS_STAGES,
+      stageGroups: DEBUG_STAGE_GROUPS,
       progressFlags: createProgressFlagRows(this.app.save.load()),
     });
     this.app.uiRoot.append(wrapper);
 
     wrapper.querySelectorAll('[data-debug-setting]').forEach(input => {
-      input.addEventListener('change', () => {
+      input.addEventListener('change', async () => {
         this.app.debug.set(input.dataset.debugSetting, input.checked);
+        if (input.dataset.debugSetting === 'capturePerformanceReport') {
+          await this.app.syncPerformanceReportCapture();
+          this.view.showPerformanceReport(wrapper, this.app.getLatestPerformanceReport?.());
+        }
         this.app.audio.playSfx('ui_decide');
       });
+    });
+
+    this.view.showPerformanceReport(wrapper, this.app.getLatestPerformanceReport?.());
+
+    wrapper.querySelector('#debug-refresh-report-btn')?.addEventListener('click', () => {
+      this.app.audio.playSfx('ui_decide');
+      this.view.showPerformanceReport(wrapper, this.app.getLatestPerformanceReport?.());
+    });
+
+    wrapper.querySelector('#debug-copy-report-btn')?.addEventListener('click', async () => {
+      const report = this.app.getLatestPerformanceReport?.();
+      if (!report?.jsonText) {
+        this.view.showPerformanceReport(wrapper, null);
+        this.app.audio.playSfx('ui_cancel');
+        return;
+      }
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('clipboard API unavailable');
+        await navigator.clipboard.writeText(report.jsonText);
+        this.view.showPerformanceReportCopied(wrapper, true);
+        this.app.audio.playSfx('ui_decide');
+      } catch (_) {
+        this.view.showPerformanceReportCopied(wrapper, false);
+        this.app.audio.playSfx('ui_cancel');
+      }
+    });
+
+    wrapper.querySelector('#debug-clear-report-btn')?.addEventListener('click', () => {
+      this.app.clearPerformanceReports?.();
+      this.view.showPerformanceReport(wrapper, null);
+      this.app.audio.playSfx('ui_cancel');
     });
 
     wrapper.querySelectorAll('[data-debug-progress-flag]').forEach(input => {
@@ -86,9 +135,10 @@ export class DebugScene extends BaseScene {
     });
 
     wrapper.querySelectorAll('[data-stage-id]').forEach(button => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         this.app.audio.resume();
         this.app.audio.playSfx('ui_decide');
+        await this.app.syncPerformanceReportCapture();
         this.app.sceneManager.change(SCENES.STAGE, {
           stageId: button.dataset.stageId,
           skipIntro: true,
@@ -96,9 +146,10 @@ export class DebugScene extends BaseScene {
       });
     });
 
-    wrapper.querySelector('#switch-test-btn').addEventListener('click', () => {
+    wrapper.querySelector('#switch-test-btn').addEventListener('click', async () => {
       this.app.audio.resume();
       this.app.audio.playSfx('ui_decide');
+      await this.app.syncPerformanceReportCapture();
       this.app.sceneManager.change(SCENES.STAGE, { stageId: 'switch_test_lab', skipIntro: false });
     });
 

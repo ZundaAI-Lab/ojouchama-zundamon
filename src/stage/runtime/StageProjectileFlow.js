@@ -7,12 +7,23 @@ import { intersects } from '../../utils/rect.js';
 
 export function updateStageProjectiles(runtime, dt, collisionWorld) {
   const projectileSolids = collisionWorld.projectileSolids;
+  const perf = runtime.app.performanceReporter;
+  let projectileSubstepsTotal = 0;
+  let projectileSubstepsMax = 0;
+  let terrainChecks = 0;
+  let terrainHits = 0;
+  let playerProjectileSteps = 0;
 
   for (const projectile of runtime.projectiles) {
     if (!projectile.alive) continue;
     const distance = Math.hypot(projectile.vx * dt, projectile.vy * dt);
     const steps = Math.max(1, Math.min(10, Math.ceil(distance / 6)));
     const stepDt = dt / steps;
+    if (perf) {
+      projectileSubstepsTotal += steps;
+      projectileSubstepsMax = Math.max(projectileSubstepsMax, steps);
+      if (projectile.faction === 'player') playerProjectileSteps += steps;
+    }
 
     for (let i = 0; i < steps && projectile.alive; i += 1) {
       ProjectileMotion.step(projectile, stepDt);
@@ -34,7 +45,12 @@ export function updateStageProjectiles(runtime, dt, collisionWorld) {
         break;
       }
 
-      if (projectileSolids.some(solid => solid.active !== false && intersects(projectile.getBounds(), solid))) {
+      const terrainHit = projectileSolids.some(solid => {
+        if (perf) terrainChecks += 1;
+        return solid.active !== false && intersects(projectile.getBounds(), solid);
+      });
+      if (terrainHit) {
+        if (perf) terrainHits += 1;
         if (projectile.faction === 'player') {
           if (runtime.hitNanoRescueWithMagic(projectile)) break;
           if (runtime.hitSwitchWithMagic(projectile)) break;
@@ -43,5 +59,16 @@ export function updateStageProjectiles(runtime, dt, collisionWorld) {
         if (projectile.collision?.disappearOnTerrain !== false) projectile.alive = false;
       }
     }
+  }
+
+  if (perf) {
+    perf.addFrameCounters({
+      projectilesBefore: runtime.projectiles.length,
+      projectileSubstepsTotal,
+      projectileTerrainChecks: terrainChecks,
+      projectileTerrainHits: terrainHits,
+      playerProjectileSteps,
+    });
+    perf.setFrameMaxCounter('projectileSubstepsMax', projectileSubstepsMax);
   }
 }

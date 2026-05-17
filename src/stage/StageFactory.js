@@ -21,7 +21,7 @@ export class StageFactory {
     const camera = new Camera();
     camera.setWorldSize(stage.width, stage.height);
 
-    const physics = new PhysicsSystem();
+    const physics = new PhysicsSystem(app.performanceReporter);
     const renderer = new RenderSystem(app);
     const player = new Player({
       ...spawnPoint,

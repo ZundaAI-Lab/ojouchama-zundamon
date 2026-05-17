@@ -11,6 +11,7 @@
  * 更新ルール: ステージBGMのイベント中断・イベント曲・再開はRuntimeの公開APIで状態だけ管理し、実際のフェード/再生はAudioSystemへ委譲する。
  * 更新ルール: エリア進行で既定復帰地点へ切り替わる時は、表示中の中継ポイント状態をStageCheckpointServiceで解除する。
  * 更新ルール: Scene退出時はステージ固有のカメラ演出・強制スクロールを明示解除し、次Sceneへ表示状態を持ち越さない。
+ * 更新ルール: 詳細負荷レポートが未確定ならScene退出時にexit理由で確定する。
  */
 import { StageFactory } from './StageFactory.js';
 import { PlatformGimmickSystem } from './PlatformGimmickSystem.js';
@@ -51,6 +52,7 @@ export class StageRuntime {
   }
 
   exit() {
+    this.app.performanceReporter?.finishStage('exit', this);
     this.clearStageEventBgmTimer?.();
     this.bossCameraController?.reset?.(this);
     this.stageScrollController?.reset?.();
@@ -68,7 +70,18 @@ export class StageRuntime {
   set respawnPoint(value) { this.areaManager.respawnPoint = value; }
 
   rebuildCollisionWorld() {
+    const perf = this.app.performanceReporter;
+    const startedAt = perf ? performance.now() : 0;
     this.collisionWorld = CollisionWorldBuilder.build(this);
+    if (perf) {
+      perf.recordPhase('collision.rebuildWorld', performance.now() - startedAt);
+      perf.addFrameCounters({
+        collisionRebuilds: 1,
+        collisionPlayerSolids: this.collisionWorld.playerSolids?.length || 0,
+        collisionProjectileSolids: this.collisionWorld.projectileSolids?.length || 0,
+        collisionSlopeSurfaces: this.collisionWorld.slopeSurfaces?.length || 0,
+      });
+    }
     return this.collisionWorld;
   }
 

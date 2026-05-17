@@ -9,15 +9,15 @@ const stage = {
   "name": "お菓子の森：クッキーこみち",
   "backgroundKey": "bg_candy_world2",
   "bgm": "world1-candy-forest",
-  "width": 2800,
+  "width": 3300,
   "height": 360,
   "playerStart": {
     "x": 48,
     "y": 288
   },
   "goal": {
-    "x": 2736,
-    "y": 264,
+    "x": 3232,
+    "y": 224,
     "variant": "sign_board"
   },
   "boss": null,
@@ -142,10 +142,10 @@ const stage = {
       "active": true
     },
     {
-      "x": 2560,
-      "y": 320,
-      "w": 240,
-      "h": 40,
+      "x": 2944,
+      "y": 272,
+      "w": 360,
+      "h": 88,
       "kind": "normal",
       "active": true
     },
@@ -191,27 +191,43 @@ const stage = {
     },
     {
       "kind": "crumble",
-      "x": 2272,
-      "y": 280,
+      "x": 2592,
+      "y": 288,
       "w": 96,
       "h": 16,
       "active": true
     },
     {
       "kind": "crumble",
-      "x": 2432,
-      "y": 280,
+      "x": 2768,
+      "y": 272,
       "w": 96,
       "h": 16,
       "active": true
     },
     {
-      "x": 1920,
-      "y": 120,
+      "x": 1808,
+      "y": 128,
       "w": 80,
       "h": 16,
       "kind": "vine",
       "active": false
+    },
+    {
+      "x": 2456,
+      "y": 304,
+      "w": 72,
+      "h": 56,
+      "kind": "normal",
+      "active": true
+    },
+    {
+      "kind": "crumble",
+      "x": 2304,
+      "y": 320,
+      "w": 96,
+      "h": 16,
+      "active": true
     }
   ],
   "residents": [
@@ -256,6 +272,13 @@ const stage = {
       "type": "jelly",
       "minX": 1632,
       "maxX": 1856
+    },
+    {
+      "x": 2960,
+      "y": 240,
+      "type": "macaron",
+      "minX": 2952,
+      "maxX": 3208
     }
   ],
   "items": [
@@ -285,13 +308,13 @@ const stage = {
       "kind": "coin"
     },
     {
-      "x": 936,
-      "y": 224,
+      "x": 1160,
+      "y": 256,
       "kind": "zundamochi"
     },
     {
       "x": 1328,
-      "y": 224,
+      "y": 240,
       "kind": "coin"
     },
     {
@@ -310,7 +333,7 @@ const stage = {
       "kind": "coin"
     },
     {
-      "x": 2168,
+      "x": 2152,
       "y": 256,
       "kind": "zundamochi"
     },
@@ -330,17 +353,17 @@ const stage = {
       "kind": "coin"
     },
     {
-      "x": 2384,
+      "x": 2696,
       "y": 224,
       "kind": "coin"
     },
     {
-      "x": 2416,
-      "y": 224,
+      "x": 2728,
+      "y": 200,
       "kind": "coin"
     },
     {
-      "x": 1808,
+      "x": 1848,
       "y": 248,
       "kind": "coin"
     },
@@ -348,6 +371,16 @@ const stage = {
       "x": 1960,
       "y": 40,
       "kind": "dreamDrop"
+    },
+    {
+      "x": 2552,
+      "y": 248,
+      "kind": "coin"
+    },
+    {
+      "x": 2760,
+      "y": 216,
+      "kind": "coin"
     }
   ],
   "decorations": [
@@ -411,7 +444,7 @@ const stage = {
       "id": "area_1",
       "name": "エリア1",
       "startX": 0,
-      "endX": 2800,
+      "endX": 3300,
       "respawn": {
         "x": 48,
         "y": 264

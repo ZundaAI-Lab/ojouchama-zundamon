@@ -3,6 +3,7 @@
  * 更新ルール: ランク計算の詳細はStageResultCalculatorへ委譲する。
  * 更新ルール: クリア済みステージの再挑戦では、保存・遷移は維持して会話イベントだけを省略する。
  * 更新ルール: 夢のしずく取得はステージゴール時にだけ確定保存し、通常エリアは取得保留、ボスエリアはゴール到達を獲得扱いにする。
+ * 更新ルール: 詳細負荷レポートはクリア確定直後に確定し、クリア後会話やリザルト描画の負荷と分離する。
  */
 import { SCENES } from '../config/sceneIds.js';
 import { StageResultCalculator } from './StageResultCalculator.js';
@@ -19,6 +20,8 @@ export class StageClearService {
   static clear(runtime) {
     if (runtime.clearStarted) return;
     runtime.clearStarted = true;
+    runtime.app.performanceReporter?.recordEvent('stage.clearRequested', { elapsed: runtime.elapsed });
+    runtime.app.performanceReporter?.finishStage('clear', runtime);
     runtime.app.input.clearGameplay();
     const dreamDropStageIds = collectDreamDropStageIdsForClear(runtime);
     if (dreamDropStageIds.length) {

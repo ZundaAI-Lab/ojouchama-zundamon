@@ -17,8 +17,9 @@ const stage = {
     "y": 264
   },
   "goal": {
-    "x": 2640,
-    "y": 240
+    "x": 2648,
+    "y": 272,
+    "variant": "sign_board"
   },
   "boss": null,
   "introDialogue": [
@@ -53,7 +54,7 @@ const stage = {
       "x": 0,
       "y": 320,
       "w": 288,
-      "h": 32,
+      "h": 40,
       "kind": "normal",
       "active": true
     },
@@ -69,7 +70,7 @@ const stage = {
       "x": 672,
       "y": 320,
       "w": 280,
-      "h": 32,
+      "h": 40,
       "kind": "normal",
       "active": true
     },
@@ -95,7 +96,7 @@ const stage = {
       "x": 1376,
       "y": 320,
       "w": 288,
-      "h": 32,
+      "h": 40,
       "kind": "normal",
       "active": true
     },
@@ -119,8 +120,8 @@ const stage = {
     {
       "x": 2112,
       "y": 320,
-      "w": 232,
-      "h": 32,
+      "w": 240,
+      "h": 40,
       "kind": "normal",
       "active": true
     },
@@ -128,7 +129,7 @@ const stage = {
       "x": 2424,
       "y": 320,
       "w": 296,
-      "h": 32,
+      "h": 40,
       "kind": "normal",
       "active": true
     }

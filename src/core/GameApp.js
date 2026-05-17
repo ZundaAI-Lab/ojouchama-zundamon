@@ -6,6 +6,7 @@
  * 更新ルール: 起動時は全画像ロードを行わず、必要キーの算出はdata/assetLoadPlans.jsへ委譲する。
  * 更新ルール: 画面全体で共通利用するUIオーバーレイは専用Controllerへ委譲し、GameAppは参照の保持に留める。
  * 更新ルール: スマホ表示の実ビューポート追従はMobileViewportControllerへ委譲し、入力処理とゲーム進行には持ち込まない。
+ * 更新ルール: 詳細負荷レポートはデバッグ設定ON時だけ動的読込し、通常時はrecorderを生成しない。
  */
 import { GAME_VIEW } from '../config/view.js';
 import { GameLoop } from './GameLoop.js';
@@ -44,6 +45,9 @@ export class GameApp {
   this.save = new SaveSystem();
   this.input = new InputSystem();
   this.input.setKeyBindings(this.save.load().settings.keyBindings);
+  this.performanceReportStore = null;
+  this.performanceReporter = null;
+  this.performanceReportModulePromise = null;
   this.audio = new AudioSystem(this.save);
   this.assets = new AssetSystem();
   this.debug = new DebugSettings();
@@ -68,6 +72,7 @@ export class GameApp {
   this.assets.setManifest(ASSET_MANIFEST);
   const initialScene = options.initialScene || SCENES.TITLE;
   const initialParams = options.initialParams || {};
+  await this.syncPerformanceReportCapture();
   await this.assets.loadKeys(getBootAssetKeys(initialScene, initialParams));
   await this.sceneManager.change(initialScene, initialParams);
   this.loop.start();
@@ -79,6 +84,9 @@ export class GameApp {
  }
 
  resize() {
+  const resizeStart = this.performanceReporter ? performance.now() : 0;
+  const oldWidth = this.canvas.width;
+  const oldHeight = this.canvas.height;
   const rect = this.shell?.getBoundingClientRect?.() || this.canvas.getBoundingClientRect();
   const cssWidth = Math.max(1, rect.width || GAME_VIEW.WIDTH);
   const cssHeight = Math.max(1, rect.height || GAME_VIEW.HEIGHT);
@@ -94,6 +102,60 @@ export class GameApp {
   this.lastCanvasWidth = this.canvas.width;
   this.lastCanvasHeight = this.canvas.height;
   this.configureCanvasQuality();
+  const perf = this.performanceReporter;
+  if (perf) {
+   perf.recordEvent('viewport.resize', {
+    oldWidth,
+    oldHeight,
+    width: this.canvas.width,
+    height: this.canvas.height,
+    cssWidth,
+    cssHeight,
+    dpr,
+    changed: oldWidth !== this.canvas.width || oldHeight !== this.canvas.height,
+    durationMs: performance.now() - resizeStart,
+   });
+  }
+ }
+
+ setPerformanceReporter(performanceReporter = null) {
+  this.performanceReporter = performanceReporter;
+  this.audio?.setPerformanceReporter?.(performanceReporter);
+  this.assets?.setPerformanceReporter?.(performanceReporter);
+  this.mobileViewport?.setPerformanceReporter?.(performanceReporter);
+  const runtime = this.sceneManager?.current?.runtime;
+  runtime?.physics?.setPerformanceReporter?.(performanceReporter);
+ }
+
+ async syncPerformanceReportCapture() {
+  if (!this.debug?.isEnabled?.() || !this.debug.get('capturePerformanceReport')) {
+   if (this.performanceReporter) {
+    const reporter = this.performanceReporter;
+    this.setPerformanceReporter(null);
+    reporter.destroy('disabled');
+   }
+   return;
+  }
+  if (this.performanceReporter) return;
+  if (!this.performanceReportModulePromise) {
+   this.performanceReportModulePromise = Promise.all([
+    import('../debug/performance/PerformanceReportStore.js'),
+    import('../debug/performance/PerformanceReportRecorder.js'),
+   ]);
+  }
+  const [{ PerformanceReportStore }, { PerformanceReportRecorder }] = await this.performanceReportModulePromise;
+  if (!this.performanceReportStore) this.performanceReportStore = new PerformanceReportStore();
+  if (this.debug?.get('capturePerformanceReport')) {
+   this.setPerformanceReporter(new PerformanceReportRecorder({ app: this, store: this.performanceReportStore }));
+  }
+ }
+
+ getLatestPerformanceReport() {
+  return this.performanceReportStore?.latest?.() || null;
+ }
+
+ clearPerformanceReports() {
+  this.performanceReportStore?.clear?.();
  }
 
  prepareFrame() {
@@ -108,7 +170,8 @@ export class GameApp {
  }
 
  tick(frameDt) {
-  const safeFrameDt = Math.max(0, Math.min(MAX_ACCUMULATED_TIME, frameDt || 0));
+  const rawFrameDt = Math.max(0, frameDt || 0);
+  const safeFrameDt = Math.max(0, Math.min(MAX_ACCUMULATED_TIME, rawFrameDt));
   const updateStart = performance.now();
 
   this.audio.update(safeFrameDt);
@@ -123,7 +186,8 @@ export class GameApp {
   }
 
   // 長い停止復帰で処理が追いつかない時は、遅れを捨てて操作不能なスパイラルを防ぐ。
-  if (steps >= MAX_STEPS_PER_FRAME) this.fixedAccumulator = 0;
+  const accumulatorDropped = steps >= MAX_STEPS_PER_FRAME;
+  if (accumulatorDropped) this.fixedAccumulator = 0;
 
   const updateMs = performance.now() - updateStart;
   this.prepareFrame();
@@ -132,8 +196,26 @@ export class GameApp {
   this.sceneManager.render(this.ctx);
   const renderMs = performance.now() - renderStart;
 
-  this.performanceStats = { frameDt: safeFrameDt, updateMs, renderMs, fixedSteps: steps };
+  this.performanceStats = {
+   rawFrameDt,
+   frameDt: safeFrameDt,
+   updateMs,
+   renderMs,
+   fixedSteps: steps,
+   accumulatorDropped,
+   canvasWidth: this.canvas.width,
+   canvasHeight: this.canvas.height,
+   renderScaleX: this.renderScaleX,
+   renderScaleY: this.renderScaleY,
+  };
   this.debugOverlay?.update(this.performanceStats);
+  this.performanceReporter?.recordFrame(this.performanceStats);
+  const runtime = this.sceneManager.current?.runtime;
+  if (runtime?.performanceReportFinishReason) {
+   const reason = runtime.performanceReportFinishReason;
+   runtime.performanceReportFinishReason = null;
+   this.performanceReporter?.finishStage(reason, runtime);
+  }
   if (steps > 0) this.input.endFrame();
  }
 }

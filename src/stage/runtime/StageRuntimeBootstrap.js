@@ -11,6 +11,7 @@
  * 更新ルール: 次ステージ画像の先読みはassetLoadPlansの算出結果だけを使い、Runtime初期化手順へステージ解析を増やさない。
  * 更新ルール: 魔法命中ヒットストップの初期値だけをここで持ち、停止処理はStageUpdateFlowへ委譲する。
  * 更新ルール: ステージ名トーストは開始会話の完了後に一度だけ表示し、HUD側の常時更新へ戻さない。
+ * 更新ルール: 詳細負荷レポートのステージ開始はBGM再生より前に記録し、初回BGM生成負荷を走破レポートへ含める。
  */
 import { Hud } from '../../ui/Hud.js';
 import { DialogueView } from '../../ui/DialogueView.js';
@@ -54,6 +55,7 @@ export async function enterStageRuntime(runtime) {
   }
   runtime.skipDialogueEvents = runtime.params.editorPreview || StageDialoguePolicy.shouldSkipStageDialogue(runtime.saveData, runtime.stage);
   runtime.stageBgmId = resolveStageBgmId(runtime.stage);
+  runtime.app.performanceReporter?.beginStage(runtime, { stageId, bgmId: runtime.stageBgmId });
   runtime.stageBgmPausedForEvent = false;
   runtime.stageEventBgmId = null;
   runtime.stageEventBgmTimer = 0;
@@ -81,6 +83,7 @@ export async function enterStageRuntime(runtime) {
   ));
   runtime.particles = runtime.particleSystem.particles;
   StageCheckpointService.restoreFromRespawn(runtime);
+  runtime.app.performanceReporter?.recordRuntimeReady(runtime);
   runtime.collisionWorld = null;
   runtime.switchTargetSystem.apply(runtime);
   runtime.stageScrollController = new StageScrollController();
@@ -136,5 +139,9 @@ export async function enterStageRuntime(runtime) {
     runtime.showStageNameToast();
   }
 
-  runtime.app.assets.preloadKeys(getNextStagePrefetchAssetKeys(runtime.stage), { timeout: 1800 });
+  const nextStagePrefetchKeys = getNextStagePrefetchAssetKeys(runtime.stage);
+  runtime.app.performanceReporter?.recordEvent('asset.nextStagePreloadRequest', {
+    count: nextStagePrefetchKeys.length,
+  });
+  runtime.app.assets.preloadKeys(nextStagePrefetchKeys, { timeout: 1800 });
 }

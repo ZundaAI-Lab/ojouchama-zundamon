@@ -181,6 +181,14 @@ function isHorizontalStepIntoFace(actor, face) {
 }
 
 export class PhysicsSystem {
+  constructor(performanceReporter = null) {
+    this.performanceReporter = performanceReporter;
+  }
+
+  setPerformanceReporter(performanceReporter = null) {
+    this.performanceReporter = performanceReporter;
+  }
+
   moveActor(actor, dt, solids, options = {}) {
     const useSlopeSurface = options.useSlopeSurface === true;
     const stepUpHeight = Math.max(0, Number(options.stepUpHeight) || 0);
@@ -195,6 +203,16 @@ export class PhysicsSystem {
     const movement = Math.max(Math.abs(totalDx), Math.abs(totalDy));
     const steps = Math.max(1, Math.min(12, Math.ceil(movement / MAX_MOVEMENT_PER_SUBSTEP)));
     const stepDt = dt / steps;
+    const perf = this.performanceReporter;
+    if (perf) {
+      perf.addFrameCounters({
+        physicsMoveActorCalls: 1,
+        physicsSubsteps: steps,
+        physicsSolidCandidates: (solids?.length || 0) * steps,
+      });
+      perf.setFrameMaxCounter('physicsMaxSubsteps', steps);
+      perf.setFrameMaxCounter('physicsSolidCount', solids?.length || 0);
+    }
 
     // prevX/prevYはゲームプレイ側が「前フレーム位置」として参照するため、物理サブステップでは上書きしない。
     // collisionPrevX/Yだけを各サブステップの直前位置として更新し、衝突面判定へ使う。

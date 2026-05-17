@@ -2,6 +2,7 @@
  * 責務: スマホ表示時の実ビューポートサイズと端末向きクラスをCSS変数へ反映する。
  * 更新ルール: 入力処理・ゲーム進行・タッチボタンDOM生成には関与しない。
  * 更新ルール: canvas実寸更新はGameApp.resize()へ通知するだけに留める。
+ * 更新ルール: 詳細負荷レポートはsetPerformanceReporterで接続し、通常refresh中に取得関数呼び出しを挟まない。
  */
 const TOUCH_QUERY = '(hover: none) and (pointer: coarse)';
 const MOBILE_WIDTH_LIMIT = 900;
@@ -9,9 +10,10 @@ const MOBILE_HEIGHT_LIMIT = 640;
 const RESIZE_DEBOUNCE_MS = 40;
 
 export class MobileViewportController {
- constructor({ shell, onResize } = {}) {
+ constructor({ shell, onResize, performanceReporter = null } = {}) {
   this.shell = shell;
   this.onResize = onResize;
+  this.performanceReporter = performanceReporter;
   this.root = document.documentElement;
   this.visualViewport = window.visualViewport || null;
   this.touchQuery = window.matchMedia?.(TOUCH_QUERY) || null;
@@ -32,6 +34,10 @@ export class MobileViewportController {
   this.touchQuery?.addEventListener?.('change', this.boundRefreshSoon);
  }
 
+ setPerformanceReporter(performanceReporter = null) {
+  this.performanceReporter = performanceReporter;
+ }
+
  refreshSoon() {
   window.clearTimeout(this.resizeTimer);
   this.resizeTimer = window.setTimeout(() => {
@@ -40,6 +46,8 @@ export class MobileViewportController {
  }
 
  refresh() {
+  const perf = this.performanceReporter;
+  const startedAt = perf ? performance.now() : 0;
   const viewport = this.getViewportSize();
   const isTouchDevice = this.isTouchDevice(viewport);
   const isLandscape = viewport.width >= viewport.height;
@@ -56,6 +64,14 @@ export class MobileViewportController {
   this.root.classList.toggle('is-mobile-portrait', isMobileViewport && !isLandscape);
 
   this.onResize?.();
+  perf?.recordEvent('viewport.mobileRefresh', {
+   width: viewport.width,
+   height: viewport.height,
+   isTouchDevice,
+   isMobileViewport,
+   isLandscape,
+   durationMs: performance.now() - startedAt,
+  });
  }
 
  getViewportSize() {

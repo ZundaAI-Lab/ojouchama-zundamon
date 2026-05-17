@@ -3,6 +3,8 @@
  * 更新ルール: HUDの常時更新項目はここで集約し、ステージ名など一度きりの演出タイミングはRuntime初期化側で制御する。
  */
 export function updateStageHud(runtime) {
+  const perf = runtime.app.performanceReporter;
+  const startedAt = perf ? performance.now() : 0;
   runtime.hud.update({
     hp: runtime.player.hp,
     maxHp: runtime.player.maxHp,
@@ -18,4 +20,5 @@ export function updateStageHud(runtime) {
     teaBoosting: runtime.player.tea.boostTimer > 0,
     balloonRide: runtime.balloonRideSystem?.getHudState?.(),
   });
+  if (perf) perf.recordPhase('hud.update', performance.now() - startedAt);
 }

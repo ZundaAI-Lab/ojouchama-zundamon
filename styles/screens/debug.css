@@ -81,15 +81,68 @@
   font-weight: 800;
 }
 
-.debug-boss-grid {
+.debug-stage-direct-block {
+  text-align: left;
+}
+
+.debug-stage-note {
+  margin: 0 0 10px;
+  color: #6d5274;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.debug-stage-group-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.debug-stage-group {
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(174, 137, 184, 0.24);
+}
+
+.debug-stage-group-title {
+  margin-bottom: 8px;
+  color: #6d5274;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.debug-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.debug-boss-btn {
+.debug-stage-btn {
   min-width: 0;
-  padding-inline: 12px;
+  padding: 8px 10px;
+  line-height: 1.25;
+}
+
+.debug-stage-label,
+.debug-stage-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-stage-label {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.debug-stage-name {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.82;
 }
 
 .debug-actions {
@@ -121,7 +174,7 @@
     padding: 14px;
   }
 
-  .debug-boss-grid {
+  .debug-stage-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -220,4 +273,43 @@
 .debug-test-failures dd {
   margin: 0;
   font-family: "Trebuchet MS", monospace;
+}
+
+.debug-performance-report-block {
+  text-align: left;
+}
+
+.debug-report-note {
+  margin: 0 0 10px;
+  color: #6d5274;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.debug-report-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.debug-report-actions .secondary-btn:disabled {
+  opacity: 0.48;
+  filter: grayscale(0.35);
+  cursor: not-allowed;
+}
+
+.debug-performance-report {
+  max-height: 260px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(174, 137, 184, 0.36);
+  background: rgba(42, 32, 54, 0.88);
+  color: #f6fff6;
+  font: 700 11px/1.55 "Trebuchet MS", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

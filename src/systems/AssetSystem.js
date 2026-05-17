@@ -2,6 +2,7 @@
  * 責務: 画像アセットのキー解決、段階ロード、ロード済み画像キャッシュを担当する。
  * 更新ルール: どの画面・ステージで何を読むかはdata/assetLoadPlans.jsへ置き、このクラスへゲーム固有判断を持ち込まない。
  * 更新ルール: 描画側は同期のgetImage()だけを使い、必要画像の事前ロードはScene遷移前に完了させる。
+ * 更新ルール: 詳細負荷レポートはsetPerformanceReporterで接続し、通常ロード処理では取得関数呼び出しを挟まない。
  */
 const DEFAULT_LOAD_CONCURRENCY = 6;
 const DEFAULT_PRELOAD_CONCURRENCY = 3;
@@ -23,12 +24,17 @@ async function runLimited(items, concurrency, worker) {
 }
 
 export class AssetSystem {
-  constructor() {
+  constructor(performanceReporter = null) {
+    this.performanceReporter = performanceReporter;
     this.sources = new Map();
     this.images = new Map();
     this.loading = new Map();
     this.failed = new Set();
     this.missingWarned = new Set();
+  }
+
+  setPerformanceReporter(performanceReporter = null) {
+    this.performanceReporter = performanceReporter;
   }
 
   setManifest(manifest) {
@@ -50,14 +56,20 @@ export class AssetSystem {
   async loadKeys(keys, options = {}) {
     const uniqueKeys = toUniqueKeys(keys).filter(key => !this.images.has(key));
     if (uniqueKeys.length <= 0) return;
+    const perf = this.performanceReporter;
+    const startedAt = perf ? performance.now() : 0;
+    perf?.recordEvent('asset.loadKeysStart', { count: uniqueKeys.length, concurrency: options.concurrency ?? DEFAULT_LOAD_CONCURRENCY });
     await runLimited(uniqueKeys, options.concurrency ?? DEFAULT_LOAD_CONCURRENCY, key => this.loadImage(key));
+    perf?.recordEvent('asset.loadKeysEnd', { count: uniqueKeys.length, durationMs: performance.now() - startedAt });
   }
 
   preloadKeys(keys, options = {}) {
     const uniqueKeys = toUniqueKeys(keys).filter(key => !this.images.has(key) && !this.loading.has(key));
     if (uniqueKeys.length <= 0) return;
+    this.performanceReporter?.recordEvent('asset.preloadQueued', { count: uniqueKeys.length });
 
     const run = () => {
+      this.performanceReporter?.recordEvent('asset.preloadStarted', { count: uniqueKeys.length });
       this.loadKeys(uniqueKeys, { concurrency: options.concurrency ?? DEFAULT_PRELOAD_CONCURRENCY });
     };
 
@@ -81,17 +93,22 @@ export class AssetSystem {
       return Promise.resolve(null);
     }
 
+    const perf = this.performanceReporter;
+    const startedAt = perf ? performance.now() : 0;
+    perf?.recordEvent('image.loadStart', { key });
     const promise = new Promise(resolve => {
       const img = new Image();
       img.onload = () => {
         this.images.set(key, img);
         this.loading.delete(key);
+        perf?.recordEvent('image.loadEnd', { key, durationMs: performance.now() - startedAt, width: img.naturalWidth || img.width || 0, height: img.naturalHeight || img.height || 0 });
         resolve(img);
       };
       img.onerror = () => {
         console.warn(`画像を読み込めませんでした: ${key} ${src}`);
         this.failed.add(key);
         this.loading.delete(key);
+        perf?.recordEvent('image.loadError', { key, durationMs: performance.now() - startedAt });
         resolve(null);
       };
       img.src = src;

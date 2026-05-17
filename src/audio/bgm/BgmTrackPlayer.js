@@ -137,14 +137,20 @@ function yieldToMain() {
   return new Promise(resolve => globalThis.setTimeout(resolve, 0));
 }
 
-async function renderChunked(items, renderItem) {
+async function renderChunked(items, renderItem, stats = null) {
   let index = 0;
   while (index < items.length) {
-    const deadline = schedulerNow() + RENDER_TIME_SLICE_MS;
+    const chunkStart = schedulerNow();
+    const deadline = chunkStart + RENDER_TIME_SLICE_MS;
     do {
       renderItem(items[index]);
       index += 1;
     } while (index < items.length && schedulerNow() < deadline);
+    const chunkMs = schedulerNow() - chunkStart;
+    if (stats) {
+      stats.chunkCount = (stats.chunkCount || 0) + 1;
+      stats.maxChunkMs = Math.max(stats.maxChunkMs || 0, chunkMs);
+    }
     if (index < items.length) await yieldToMain();
   }
 }
@@ -350,36 +356,42 @@ function expandEvents(track, events) {
     .sort((a, b) => (a.beat ?? 0) - (b.beat ?? 0));
 }
 
-async function renderPcm(track, events, durationSeconds, sampleRate) {
+async function renderPcm(track, events, durationSeconds, sampleRate, stats = null) {
   const length = Math.max(1, Math.ceil(durationSeconds * sampleRate));
   const pcm = createPcm(length);
   const expanded = expandEvents(track, events);
-  await renderChunked(expanded, event => renderExpandedEvent(pcm, sampleRate, track, event));
+  if (stats) {
+    stats.eventCount = (stats.eventCount || 0) + events.length;
+    stats.expandedEventCount = (stats.expandedEventCount || 0) + expanded.length;
+  }
+  await renderChunked(expanded, event => renderExpandedEvent(pcm, sampleRate, track, event), stats);
   return pcm;
 }
 
-async function renderLoopPcm(track, loopTimeline, sampleRate) {
+async function renderLoopPcm(track, loopTimeline, sampleRate, stats = null) {
   const loopFrames = Math.max(1, Math.round(loopTimeline.totalSeconds * sampleRate));
   const events = [];
   for (let pass = 0; pass < LOOP_RENDER_PASSES; pass += 1) {
     events.push(...collectEvents(track, loopTimeline.sections, pass * loopTimeline.totalBeats));
   }
-  const rendered = await renderPcm(track, events, (loopFrames * LOOP_RENDER_PASSES) / sampleRate, sampleRate);
+  const rendered = await renderPcm(track, events, (loopFrames * LOOP_RENDER_PASSES) / sampleRate, sampleRate, stats);
   return copyPcmSlice(rendered, loopFrames, loopFrames);
 }
 
-async function renderEntryPcm(track, introTimeline, loopTimeline, sampleRate) {
+async function renderEntryPcm(track, introTimeline, loopTimeline, sampleRate, stats = null) {
   if (!introTimeline.sections.length) return null;
   const introEvents = collectEvents(track, introTimeline.sections, 0);
   const loopEvents = collectEvents(track, loopTimeline.sections, introTimeline.totalBeats);
-  return renderPcm(track, [...introEvents, ...loopEvents], introTimeline.totalSeconds + loopTimeline.totalSeconds, sampleRate);
+  return renderPcm(track, [...introEvents, ...loopEvents], introTimeline.totalSeconds + loopTimeline.totalSeconds, sampleRate, stats);
 }
 
 function renderSampleRate(ctx) {
   return Math.max(3000, Math.min(ctx?.sampleRate || RENDER_SAMPLE_RATE, RENDER_SAMPLE_RATE));
 }
 
-async function renderTrackBuffers(ctx, track) {
+async function renderTrackBuffers(ctx, track, reporter = null) {
+  const renderStart = schedulerNow();
+  const renderStats = { chunkCount: 0, maxChunkMs: 0, eventCount: 0, expandedEventCount: 0 };
   const loopOrder = existingLoopOrder(track);
   const introOrder = track?.sections?.[INTRO_SECTION] && !loopOrder.includes(INTRO_SECTION) ? [INTRO_SECTION] : [];
   if (!loopOrder.length) return null;
@@ -387,14 +399,32 @@ async function renderTrackBuffers(ctx, track) {
   const introTimeline = buildTimeline(track, introOrder);
   const loopTimeline = buildTimeline(track, loopOrder);
   const sampleRate = renderSampleRate(ctx);
-  const loopPcm = await renderLoopPcm(track, loopTimeline, sampleRate);
-  const entryPcm = await renderEntryPcm(track, introTimeline, loopTimeline, sampleRate);
+  reporter?.recordEvent('bgm.renderStart', {
+    trackId: track?.id || '',
+    sampleRate,
+    loopSeconds: loopTimeline.totalSeconds,
+    introSeconds: introTimeline.totalSeconds,
+  });
+  const loopPcm = await renderLoopPcm(track, loopTimeline, sampleRate, renderStats);
+  const entryPcm = await renderEntryPcm(track, introTimeline, loopTimeline, sampleRate, renderStats);
   applySharedHeadroom([entryPcm, loopPcm]);
 
-  return {
+  const bufferStart = schedulerNow();
+  const buffers = {
     entryBuffer: entryPcm ? createBuffer(ctx, entryPcm, sampleRate) : null,
     loopBuffer: createBuffer(ctx, loopPcm, sampleRate),
   };
+  reporter?.recordEvent('bgm.renderEnd', {
+    trackId: track?.id || '',
+    durationMs: schedulerNow() - renderStart,
+    createBufferMs: schedulerNow() - bufferStart,
+    chunkCount: renderStats.chunkCount,
+    maxChunkMs: renderStats.maxChunkMs,
+    eventCount: renderStats.eventCount,
+    expandedEventCount: renderStats.expandedEventCount,
+    sampleRate,
+  });
+  return buffers;
 }
 
 function stableStringify(value) {
@@ -433,12 +463,16 @@ function trimRenderCache(cache) {
   }
 }
 
-function getRenderedBuffers(ctx, track) {
+function getRenderedBuffers(ctx, track, reporter = null) {
   const cache = getRenderCacheForContext(ctx);
   const key = cacheKey(track, ctx);
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) {
+    reporter?.recordEvent('bgm.cacheHit', { trackId: track?.id || '' });
+    return cache.get(key);
+  }
 
-  const promise = renderTrackBuffers(ctx, track).catch((error) => {
+  reporter?.recordEvent('bgm.cacheMiss', { trackId: track?.id || '' });
+  const promise = renderTrackBuffers(ctx, track, reporter).catch((error) => {
     cache.delete(key);
     throw error;
   });
@@ -456,9 +490,10 @@ function safeDisconnect(node) {
 }
 
 export class BgmTrackPlayer {
-  constructor(getContext, getDestination) {
+  constructor(getContext, getDestination, performanceReporter = null) {
     this.getContext = getContext;
     this.getDestination = getDestination;
+    this.performanceReporter = performanceReporter;
     this.currentTrackId = null;
     this.currentTrackKey = null;
     this.track = null;
@@ -471,11 +506,17 @@ export class BgmTrackPlayer {
     return this.getContext?.() || null;
   }
 
+  setPerformanceReporter(performanceReporter = null) {
+    this.performanceReporter = performanceReporter;
+  }
+
   play(track) {
     const ctx = this.ctx;
     const destination = this.getDestination?.();
     if (!ctx || !destination || !track) return;
+    const reporter = this.performanceReporter;
     const nextTrackKey = cacheKey(track, ctx);
+    reporter?.recordEvent('bgm.playRequested', { trackId: track.id || '', sameTrack: this.currentTrackKey === nextTrackKey && !!this.bus });
     if (this.currentTrackKey === nextTrackKey && this.bus) return;
 
     this.stop(STOP_FADE_SEC);
@@ -489,12 +530,14 @@ export class BgmTrackPlayer {
     this.bus.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.36);
     this.bus.connect(destination);
 
-    getRenderedBuffers(ctx, track)
+    getRenderedBuffers(ctx, track, reporter)
       .then((buffers) => {
         if (this.renderToken !== token || this.currentTrackKey !== nextTrackKey || !this.bus || !buffers?.loopBuffer) return;
+        reporter?.recordEvent('bgm.buffersReady', { trackId: track.id || '' });
         this.startBuffers(buffers, ctx.currentTime + PLAY_START_LEAD_SEC);
       })
-      .catch(() => {
+      .catch((error) => {
+        reporter?.recordEvent('bgm.renderError', { trackId: track.id || '', message: error?.message || String(error) });
         if (this.renderToken === token) this.stop(0);
       });
   }
