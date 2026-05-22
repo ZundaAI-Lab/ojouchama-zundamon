@@ -1,8 +1,9 @@
 /*
- * 責務: ステージHUD、バナー、スキルゲージのスタイルを担当する。
+ * 責務: ステージHUD、バナー、スキルリングゲージのスタイルを担当する。
  * 更新ルール: HUD以外の画面カードや会話UIを追加しない。
- * 更新ルール: 上中央は常設HUDの占有を避け、左上ステータス・右上スキルへ集約する。
+ * 更新ルール: 上中央は常設HUDの占有を避け、左上ステータスと左上スキルへ集約する。
  * 更新ルール: HUD背景の色と不透明度は #hud-root のCSS変数で受け取り、保存設定はJS側で正規化する。
+ * 更新ルール: スキル進捗は .skill の --skill-rate / --skill-angle で更新し、バー型表示へ戻さない。
  * 更新ルール: ステージ名以外の通知トーストは中央上部を空けるため左寄せにする。
  */
 #hud-root {
@@ -24,14 +25,14 @@
 .hud {
   position: absolute;
   left: 12px;
-  right: 12px;
   top: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, max-content);
+  align-items: start;
+  justify-items: start;
+  gap: clamp(8px, 0.7vw, 12px);
   color: #374237;
-  font-size: clamp(15px, 1.18vw, 21px);
+  font-size: clamp(15px, 1.14vw, 20px);
   line-height: 1.18;
   pointer-events: none;
 }
@@ -44,10 +45,9 @@
 }
 
 .hud-main {
-  width: clamp(220px, 26vw, 360px);
-  padding: clamp(8px, 0.78vw, 13px) clamp(11px, 0.95vw, 16px);
-  display: grid;
-  gap: clamp(5px, 0.46vw, 8px);
+  max-width: calc(100vw - 24px);
+  padding: clamp(8px, 0.72vw, 12px) clamp(14px, 1.15vw, 20px);
+  border-radius: 999px;
 }
 
 .hud-row {
@@ -58,48 +58,27 @@
   min-width: 0;
 }
 
-.hud-title-row {
-  min-width: 0;
-}
-
-.hud-title {
-  min-width: 0;
-  font-size: clamp(17px, 1.28vw, 25px);
-  line-height: 1.1;
-  font-weight: 900;
-  color: #4f7f4f;
-  letter-spacing: 0.02em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hud-stat-label {
-  font-weight: 800;
-  color: #3f4a40;
-}
-
-.hud-stat-row {
-  gap: 8px;
-}
-
 .hearts {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: clamp(21px, 1.5vw, 30px);
+  margin-right: clamp(10px, 1.1vw, 18px);
+  font-size: clamp(20px, 1.42vw, 28px);
   line-height: 1;
-  color: #2f4536;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
+  color: #f06f9f;
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.62))
+    drop-shadow(0 2px 2px rgba(65, 90, 60, 0.2));
 }
 
 .hearts .lost {
-  opacity: 0.25;
+  color: #9b6577;
+  opacity: 0.34;
 }
 
 .hud-meter-row {
-  gap: 8px 14px;
-  font-weight: 800;
+  gap: clamp(9px, 1.1vw, 18px);
+  font-weight: 900;
 }
 
 .hud-stat-pair {
@@ -114,70 +93,140 @@
 }
 
 .hud-time-icon {
-  font-size: 0.95em;
+  font-size: 0.98em;
   line-height: 1;
 }
 
 .hud-icon {
-  width: clamp(20px, 1.45vw, 29px);
-  height: clamp(20px, 1.45vw, 29px);
+  width: clamp(20px, 1.42vw, 28px);
+  height: clamp(20px, 1.42vw, 28px);
   object-fit: contain;
   flex: 0 0 auto;
   filter: drop-shadow(0 2px 2px rgba(60, 48, 55, 0.16));
 }
 
 .hud-skills {
-  width: clamp(205px, 22vw, 330px);
-  padding: clamp(8px, 0.76vw, 12px) clamp(10px, 0.9vw, 15px);
-  display: grid;
-  gap: clamp(5px, 0.5vw, 8px);
-  align-content: start;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: clamp(8px, 0.86vw, 14px);
+  padding-left: clamp(10px, 0.9vw, 16px);
 }
 
 .skill {
+  --skill-rate: 0;
+  --skill-angle: 0deg;
+  --skill-ring-ready: #82d66c;
+  --skill-ring-track: rgba(71, 88, 62, 0.14);
+  position: relative;
+  width: clamp(42px, 3.1vw, 54px);
+  height: clamp(46px, 3.38vw, 59px);
+  opacity: 0.92;
+  transition: opacity 0.16s ease, filter 0.16s ease, transform 0.16s ease;
+}
+
+.skill-ring {
+  position: relative;
+  width: clamp(40px, 2.92vw, 51px);
+  height: clamp(40px, 2.92vw, 51px);
+  border-radius: 50%;
   display: grid;
-  grid-template-columns: minmax(48px, 0.45fr) minmax(76px, 1fr) minmax(36px, auto);
-  align-items: center;
-  gap: clamp(7px, 0.7vw, 12px);
-  min-width: 0;
+  place-items: center;
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--skill-ring-ready) var(--skill-angle),
+      var(--skill-ring-track) 0
+    );
+  box-shadow:
+    0 5px 13px rgba(67, 85, 58, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+}
+
+.skill-ring::before {
+  content: '';
+  position: absolute;
+  inset: clamp(3px, 0.28vw, 5px);
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.42) 42%, transparent 43%),
+    rgba(var(--hud-panel-rgb), calc(var(--hud-panel-alpha) + 0.12));
+  box-shadow:
+    0 0 0 1px rgba(178, 214, 160, 0.38) inset,
+    0 0 0 3px rgba(255, 244, 190, 0.28) inset;
+  backdrop-filter: blur(4px) saturate(1.05);
+}
+
+.skill-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(226, 193, 96, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.58) inset,
+    0 0 8px rgba(129, 195, 99, 0.1);
+}
+
+.skill-icon {
+  position: relative;
+  z-index: 1;
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(60, 48, 55, 0.18));
 }
 
 .skill-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #5b6658;
-  font-weight: 800;
-}
-
-.skill [data-label] {
-  text-align: right;
-  font-size: 0.9em;
-  font-weight: 900;
-  white-space: nowrap;
-  color: #334333;
-}
-
-.skill-bar {
-  height: clamp(8px, 0.72vw, 12px);
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: -3px;
+  transform: translateX(-50%);
+  min-width: calc(100% - 5px);
+  max-width: calc(100% + 14px);
+  box-sizing: border-box;
+  padding: 1px 5px 2px;
   border-radius: 999px;
-  overflow: hidden;
-  background: rgba(69, 88, 68, 0.11);
-  box-shadow: 0 0 0 1px rgba(82, 117, 82, 0.14) inset;
+  color: #4c5d44;
+  background: rgba(255, 253, 236, 0.88);
+  border: 1px solid rgba(218, 188, 95, 0.62);
+  box-shadow:
+    0 1px 3px rgba(80, 80, 50, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.45) inset;
+  font-size: clamp(10px, 0.78vw, 13px);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.skill-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #c7efb1, #72c675);
-  box-shadow: 0 0 8px rgba(120, 203, 112, 0.26);
+.skill.ready {
+  --skill-ring-ready: #f0bd56;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px rgba(239, 188, 88, 0.22));
 }
 
-.skill.ready .skill-fill {
-  width: 100% !important;
-  background: linear-gradient(90deg, #ffe7a3, #efbd5e);
-  box-shadow: 0 0 9px rgba(235, 185, 91, 0.28);
+.skill.ready .skill-ring::after {
+  border-color: rgba(239, 191, 89, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.62) inset,
+    0 0 12px rgba(239, 188, 88, 0.3);
+}
+
+.skill.boosting {
+  filter: drop-shadow(0 0 9px rgba(117, 203, 94, 0.3));
+}
+
+.skill.locked,
+.skill.unavailable {
+  opacity: 0.46;
+  filter: grayscale(0.5);
+}
+
+.skill.locked {
+  --skill-ring-ready: #c5bdc4;
+  --skill-ring-track: rgba(79, 76, 82, 0.16);
 }
 
 .stage-name-pop,
@@ -282,14 +331,6 @@
   animation: balloon-hud-hit 0.22s ease-out 0s 2;
 }
 
-.skill.locked {
-  opacity: 0.5;
-}
-
-.skill.locked .skill-fill {
-  background: linear-gradient(90deg, #cfc6ce, #aaa0aa);
-}
-
 @keyframes balloon-hud-hit {
   0% { transform: translateX(0); }
   30% { transform: translateX(-4px); }
@@ -300,25 +341,29 @@
 @media (max-width: 980px), (max-height: 640px) {
   .hud {
     left: 9px;
-    right: 9px;
     top: 9px;
-    gap: 10px;
+    gap: 8px;
     font-size: clamp(13px, 2.1vw, 18px);
   }
 
   .hud-main {
-    width: clamp(195px, 41vw, 300px);
-    padding: 8px 11px;
+    max-width: calc(100vw - 18px);
+    padding: 7px 12px;
   }
 
   .hud-skills {
-    width: clamp(182px, 38vw, 280px);
-    padding: 8px 10px;
+    gap: 8px;
+    padding-left: 8px;
   }
 
   .skill {
-    grid-template-columns: minmax(42px, 0.42fr) minmax(58px, 1fr) minmax(31px, auto);
-    gap: 7px;
+    width: 40px;
+    height: 44px;
+  }
+
+  .skill-ring {
+    width: 39px;
+    height: 39px;
   }
 
   .stage-name-pop {
@@ -347,32 +392,24 @@
 @media (max-width: 620px), (max-height: 460px) {
   .hud {
     left: 6px;
-    right: 6px;
     top: 6px;
     gap: 6px;
     font-size: 12px;
   }
 
   .hud-main {
-    width: 188px;
-    padding: 7px 8px;
-    border-radius: 15px;
-    gap: 4px;
-  }
-
-  .hud-skills {
-    width: 176px;
-    padding: 7px 8px;
-    border-radius: 15px;
-    gap: 4px;
-  }
-
-  .hud-title {
-    font-size: 15px;
+    max-width: calc(100vw - 12px);
+    padding: 6px 9px;
+    border-radius: 999px;
   }
 
   .hearts {
-    font-size: 19px;
+    margin-right: 5px;
+    font-size: 18px;
+  }
+
+  .hud-meter-row {
+    gap: 5px 8px;
   }
 
   .hud-icon {
@@ -380,21 +417,29 @@
     height: 18px;
   }
 
-  .hud-meter-row {
-    gap: 5px 8px;
+  .hud-time-icon {
+    font-size: 0.9em;
+  }
+
+  .hud-skills {
+    gap: 6px;
+    padding-left: 6px;
   }
 
   .skill {
-    grid-template-columns: 36px minmax(44px, 1fr) 26px;
-    gap: 5px;
+    width: 34px;
+    height: 38px;
   }
 
-  .skill [data-label] {
-    font-size: 11px;
+  .skill-ring {
+    width: 33px;
+    height: 33px;
   }
 
-  .skill-bar {
-    height: 7px;
+  .skill-name {
+    bottom: -3px;
+    padding: 1px 4px 2px;
+    font-size: 9px;
   }
 
   .stage-name-pop {

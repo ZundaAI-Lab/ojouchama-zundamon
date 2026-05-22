@@ -72,6 +72,9 @@ const PLAYER_STAGE_ASSET_KEYS = Object.freeze([
 const HUD_ASSET_KEYS = Object.freeze([
   'icon_coin',
   'icon_teacup',
+  'icon_bean_staff',
+  'icon_lace_gloves',
+  'icon_royal_tea_set',
 ]);
 
 const STAGE_COMMON_ASSET_KEYS = Object.freeze([
