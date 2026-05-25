@@ -1,7 +1,8 @@
 /**
  * 責務: タイトル画面のDOM構造を生成する。
  * 更新ルール: 画面遷移・セーブ初期化などの処理は TitleScene に残し、ここでは表示用HTMLだけを組み立てる。
- * 更新ルール: タイトル画面は上部タイトルの直下に、進行状況パネルと操作ボタンパネルを上下配置で分離する。
+ * 更新ルール: タイトル画面は上部タイトルロゴの直下に、進行状況パネルと操作ボタンパネルを上下配置で分離する。
+ * 更新ルール: タイトルロゴは assets/images/title_logo.png を表示し、文字タイトルはアクセシビリティ用ラベルに限定する。
  * 更新ルール: バージョン表記は appVersion のグローバル定数を参照し、画面側へ直書きしない。
  */
 import { APP_VERSION_LABEL } from '../../config/appVersion.js';
@@ -15,8 +16,9 @@ export class TitleView {
     const wrapper = document.createElement('div');
     wrapper.className = 'menu-screen title-screen';
     wrapper.innerHTML = `
-      <h1 class="title-main-heading">お嬢ちゃまずんだもんと<br>夢みる豆の王国</h1>
-
+      <h1 class="title-main-heading" aria-label="お嬢ちゃまずんだもんと夢みる豆の王国">
+        <img class="title-logo-image" src="./assets/images/title_logo.png" alt="" aria-hidden="true" draggable="false">
+      </h1>
       <div class="title-bottom-panels">
         <section class="title-progress-panel panel" aria-label="進行状況">
           <div class="title-block-heading">進行状況</div>
@@ -31,7 +33,6 @@ export class TitleView {
             </div>
           </div>
         </section>
-
         <div class="title-actions-panel panel" aria-label="タイトルメニュー">
           <div class="menu-actions title-actions title-actions-vertical">
             <button class="primary-btn title-primary-action" id="start-btn">はじめから</button>
@@ -42,7 +43,6 @@ export class TitleView {
           </div>
         </div>
       </div>
-
       <div class="title-version-label" aria-label="バージョン">${APP_VERSION_LABEL}</div>
     `;
     return wrapper;
